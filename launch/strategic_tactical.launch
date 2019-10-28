@@ -2,8 +2,9 @@
 <launch>
 
 	<!-- arguments -->
-	<arg name="domain_strategic"	default="$(find rosplan_interface_strategic)/common/domain_strand.pddl" />
-	<arg name="problem_normal"	default="$(find rosplan_interface_strategic)/common/problem_strand.pddl" />
+	<arg name="domain_strategic"	default="$(find rosplan_interface_strategic)/common/droneacharya-domain-strategic.pddl" />
+	<arg name="domain_tactical"	default="$(find rosplan_interface_strategic)/common/droneacharya-domain-tactical.pddl" />
+	<arg name="problem_normal"	default="$(find rosplan_interface_strategic)/common/droneacharya-problem.pddl" />
 
 	<!-- scene database (MongoDB) -->
 	<include file="$(find mongodb_store)/launch/mongodb_store.launch">
@@ -67,7 +68,7 @@
 		<arg name="use_problem_topic"    value="true" />
 		<arg name="problem_topic"        value="/tactical_problem_interface/problem_instance" />
 		<arg name="planner_topic"        value="planner_output" />
-		<arg name="domain_path"          value="$(arg domain_strategic)" />
+		<arg name="domain_path"          value="$(arg domain_tactical" />
 		<arg name="problem_path"         value="$(find rosplan_interface_strategic)/common/problem_tactical.pddl" />
 		<arg name="data_path"            value="$(find rosplan_interface_strategic)/common/tactical" />
 		<arg name="planner_command"      value="timeout 10 $(find rosplan_planning_system)/common/bin/popf DOMAIN PROBLEM" />
@@ -84,7 +85,7 @@
 	<!-- tactical problem generation -->
 	<include file="$(find rosplan_planning_system)/launch/includes/problem_interface.launch">
 		<arg name="node_name"        value="tactical_problem_interface" />
-		<arg name="domain_path"      value="$(arg domain_strategic)" />
+		<arg name="domain_path"      value="$(arg domain_tactical)" />
 		<arg name="problem_path"     value="$(find rosplan_interface_strategic)/common/problem_tactical.pddl" />
 		<arg name="problem_topic"    value="problem_instance" />
 	</include>

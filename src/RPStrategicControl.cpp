@@ -48,6 +48,9 @@ namespace KCL_rosplan {
 
 	}
 
+
+
+
 	/**
 	 * mission generation service method
 	 */
@@ -65,32 +68,37 @@ namespace KCL_rosplan {
 			goals = currentGoalSrv.response.attributes;
 		}
 
-		// clear old goals
+
+
+
+
+		// clear old goals from initial problem file
 		rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
 		updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
 		updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
 		updateSrv.request.knowledge.attribute_name = "";
-		updateSrv.request.knowledge.values.clear();
+		updateSrv.request.knowledge.values.clear();  // <-- here there are cleared
 		update_knowledge_client.call(updateSrv);
 
-		// compute mission durations
+		// execute offline tactical plan to obtain mission duration and drone(s) charge consumption
+
 		std::stringstream ss;
 		std::vector<double> mission_durations;
-		//the locations the mission starts at, and so where the robot has to be to start the mission - for mission_at
+		    //the locations the mission starts at, and so where the robot has to be to start the mission - for mission_at
 		std::vector<diagnostic_msgs::KeyValue> start_locations;
-		//the location the robot will be after the mission has been
+		    //the location the robot will be after the mission has been
 		std::vector<diagnostic_msgs::KeyValue> end_points;
 		std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = goals.begin();
 		for(; git!=goals.end(); git++) {
 			ss.str("");
 			ss << "mission_" << mission_durations.size();
 
-			// insert new goal
+			// insert new goal into the initial problem file state (that now has 0 goals)
 			updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
 			updateSrv.request.knowledge = *git;
 			update_knowledge_client.call(updateSrv);
 
-			// generate problem and plan
+			// generate problem and plan from the initial problem file state and 1 added goal
 			ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
 			new_plan_recieved = false;
 
@@ -104,7 +112,7 @@ namespace KCL_rosplan {
 
 			while(!new_plan_recieved && ros::ok()) ros::spinOnce();
 
-			// compute plan duration
+			// compute mission duration by parsing the obtained plan
 			double max_time = 0;
 			std::vector<rosplan_dispatch_msgs::EsterelPlanNode>::iterator nit = last_plan.nodes.begin();
 			for(; nit != last_plan.nodes.end(); nit++) {
@@ -138,7 +146,7 @@ namespace KCL_rosplan {
 			update_knowledge_client.call(updateSrv);
 		}
 
-		// add new mission goals
+		// add new mission goals to the strategic problem
 		ROS_INFO("KCL: (%s) Adding new mission goals.", ros::this_node::getName().c_str());
 		for(int i=0; i<mission_durations.size(); i++) {
 
@@ -209,6 +217,7 @@ namespace KCL_rosplan {
 		}
 	}
 
+	// method for getting location endpoints
 	diagnostic_msgs::KeyValue RPStrategicControl::getEndPoint(std::vector<rosplan_dispatch_msgs::EsterelPlanNode> & nodes) const{
 		std::vector<rosplan_dispatch_msgs::EsterelPlanNode>::reverse_iterator nrit = nodes.rbegin();
 		for(; nrit != nodes.rend(); ++nrit){
