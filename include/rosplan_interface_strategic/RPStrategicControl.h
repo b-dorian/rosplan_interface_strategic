@@ -36,7 +36,7 @@ namespace KCL_rosplan {
 		std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
-
+        
 
 		std::map< std::string, std::vector<rosplan_knowledge_msgs::KnowledgeItem> > missions;
 

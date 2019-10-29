@@ -60,7 +60,9 @@ namespace KCL_rosplan {
 
 		ROS_INFO("KCL: (%s) Decomposing problem by subgoals.", ros::this_node::getName().c_str());
 
-		// retrieve old goals and save
+		// retrieve initial state information
+
+		    // goals
 		rosplan_knowledge_msgs::GetAttributeService currentGoalSrv;
 		if (!current_goals_client.call(currentGoalSrv)) {
 			ROS_ERROR("KCL: (%s) Failed to call goal service.", ros::this_node::getName().c_str());
@@ -68,17 +70,35 @@ namespace KCL_rosplan {
 			goals = currentGoalSrv.response.attributes;
 		}
 
+            // propositions
+        rosplan_knowledge_msgs::GetAttributeService currentPropositionsSrv;
+        if (!current_goals_client.call(currentPropositionsSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call propositions service.", ros::this_node::getName().c_str());
+        } else {
+            propositions = currentPropositionsSrv.response.attributes;
+        }
+
+            // functions
+        rosplan_knowledge_msgs::GetAttributeService currentFunctionsSrv;
+        if (!current_goals_client.call(currentFunctionsSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call functions service.", ros::this_node::getName().c_str());
+        } else {
+            functions = currentFunctionsSrv.response.attributes;
+        }
 
 
 
 
-		// clear old goals from initial problem file
+        // clear old goals from initial problem file
 		rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
 		updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
 		updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
 		updateSrv.request.knowledge.attribute_name = "";
 		updateSrv.request.knowledge.values.clear();  // <-- here there are cleared
 		update_knowledge_client.call(updateSrv);
+
+		// clear unnecessary facts from initial problem file - no drones, no stations info,
+
 
 		// execute offline tactical plan to obtain mission duration and drone(s) charge consumption
 
