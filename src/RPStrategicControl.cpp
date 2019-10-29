@@ -12,11 +12,14 @@ namespace KCL_rosplan {
 		// knowledge interface
 		update_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base/update");
 		current_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/goals");
+        current_propositions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/propositions");
+        current_functions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/functions");
 
 		// planning interface
 		std::string probTopic = "/rosplan_problem_interface/problem_generation_server";
 		std::string planTopic = "/rosplan_planner_interface/planning_server";
 		std::string parsTopic = "/rosplan_parsing_interface/parse_plan";
+
 
 		node_handle->getParam("problem_service_topic", probTopic);
 		node_handle->getParam("planning_service_topic", planTopic);
@@ -36,6 +39,9 @@ namespace KCL_rosplan {
 	/* missions */
 	/*----------*/
 
+
+
+	// called at the tactical level to get the relevant goals of a particular mission
 	/**
 	 * get goals for particular mission
 	 */
@@ -60,7 +66,7 @@ namespace KCL_rosplan {
 
 		ROS_INFO("KCL: (%s) Decomposing problem by subgoals.", ros::this_node::getName().c_str());
 
-		// retrieve initial state information
+		// retrieve and store initial state information
 
 		    // goals
 		rosplan_knowledge_msgs::GetAttributeService currentGoalSrv;
@@ -72,7 +78,7 @@ namespace KCL_rosplan {
 
             // propositions
         rosplan_knowledge_msgs::GetAttributeService currentPropositionsSrv;
-        if (!current_goals_client.call(currentPropositionsSrv)) {
+        if (!current_propositions_client.call(currentPropositionsSrv)) {
             ROS_ERROR("KCL: (%s) Failed to call propositions service.", ros::this_node::getName().c_str());
         } else {
             propositions = currentPropositionsSrv.response.attributes;
@@ -80,7 +86,7 @@ namespace KCL_rosplan {
 
             // functions
         rosplan_knowledge_msgs::GetAttributeService currentFunctionsSrv;
-        if (!current_goals_client.call(currentFunctionsSrv)) {
+        if (!current_functions_client.call(currentFunctionsSrv)) {
             ROS_ERROR("KCL: (%s) Failed to call functions service.", ros::this_node::getName().c_str());
         } else {
             functions = currentFunctionsSrv.response.attributes;
@@ -97,7 +103,24 @@ namespace KCL_rosplan {
 		updateSrv.request.knowledge.values.clear();  // <-- here there are cleared
 		update_knowledge_client.call(updateSrv);
 
-		// clear unnecessary facts from initial problem file - no drones, no stations info,
+
+		// clear old prepositions from initial problem file
+
+        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        updateSrv.request.knowledge.attribute_name = "";
+        updateSrv.request.knowledge.values.clear();  // <-- here there are cleared
+        update_knowledge_client.call(updateSrv);
+
+		// clear old functions from initial problem file
+
+        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FUNCTION;
+        updateSrv.request.knowledge.attribute_name = "";
+        updateSrv.request.knowledge.values.clear();  // <-- here there are cleared
+        update_knowledge_client.call(updateSrv);
+
+
 
 
 		// execute offline tactical plan to obtain mission duration and drone(s) charge consumption

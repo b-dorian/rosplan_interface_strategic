@@ -32,7 +32,10 @@ namespace KCL_rosplan {
 		/* rosplan knowledge interface */
 		ros::ServiceClient update_knowledge_client;
 		ros::ServiceClient current_goals_client;
-		ros::ServiceClient current_knowledge_client;
+		ros::ServiceClient current_propositions_client;
+        ros::ServiceClient current_functions_client;
+        ros::ServiceClient current_knowledge_client;
+
 		std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
