@@ -52,6 +52,7 @@ namespace KCL_rosplan {
 		bool new_plan_recieved;
 		diagnostic_msgs::KeyValue getEndPoint(std::vector<rosplan_dispatch_msgs::EsterelPlanNode> & node) const;
 		int getMinTime(rosplan_dispatch_msgs::EsterelPlan& plan) const;
+        std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem> splitSiteGoals(int,std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
 
 	public:
 
