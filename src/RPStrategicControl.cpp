@@ -51,7 +51,6 @@ namespace KCL_rosplan {
 		if(missions.find(mission_name)!=missions.end()) {
 			res.attributes = missions.find(mission_name)->second; // all pddl goals in the mission
 		}
-
 	}
 
     std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem> RPStrategicControl::splitSiteGoals(std::string mission_label, std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git){
@@ -81,32 +80,24 @@ namespace KCL_rosplan {
                         ss << "site-" << i + 1 << "-image-mission-"+mission_label;
                         temp = std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem>(ss.str(),*git);
                     }
-
                     if (git->values[0].value.compare("thermal-image") == 0) {
                         ss.str("");
                         ss << "site-" << i + 1 << "-thermal-mission-"+mission_label;
                         temp = std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem>(ss.str(),*git);
                     }
-
                     if (git->values[0].value.compare("signal-measurement") == 0) {
                         ss.str("");
                         ss << "site-" << i + 1 << "-signal-mission-"+mission_label;
                         temp = std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem>(ss.str(),*git);
                     }
-
-
                 }
-
-
                 if (git->attribute_name == "know-simultaneous") {
                     ss.str("");
                     ss << "site-" << i + 1 << "-simultaneous-mission";
                     temp = std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem>(ss.str(),*git);
                 }
             }
-
         }
-
         return temp;
 	}
 
@@ -188,64 +179,44 @@ namespace KCL_rosplan {
             }
         }
 
-//        //solve each subgoal at the tactical level offline to obtain mission duration and drone(s) charge consumption
-//        std::vector<double> mission_durations;
-//        std::map<double,double>  mission_consumptions;
-//        std::vector<std::string> mission_types;
-//        std::vector<diagnostic_msgs::KeyValue> mission_locations;
-//
-//            //add mission pddl goals
-//        std::map< std::string, std::vector<rosplan_knowledge_msgs::KnowledgeItem> >::iterator mit = missions.begin();
-//        for(; mit!=missions.end(); mit++) {
-//            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mit->second.begin();
-//            for(; git!=mit->second.end(); git++) {
-//                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-//                updateSrv.request.knowledge = *git;
-//                update_knowledge_client.call(updateSrv);
-//            }
-//
-//            // generate problem and plan from the initial problem file state and 1 added goal
-//            ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
-//            new_plan_recieved = false;
-//
-//            std_srvs::Empty empty;
-//            problem_client.call(empty);
-//            ros::Duration(1).sleep(); // sleep for a second
-//            planning_client.call(empty);
-//            ros::Duration(1).sleep(); // sleep for a second
-//            parsing_client.call(empty);
-//            ros::Duration(1).sleep(); // sleep for a second
-//
-//            while(!new_plan_recieved && ros::ok()) ros::spinOnce();
-//
-//                // start to compute duration
-//
-//        }
+        // add mission location predicates
 
 
 
-//		for(; git!=goals.end(); git++) {
-//			ss.str("");
-//			ss << "mission_" << mission_durations.size();
-//
-//			// insert new goal into the initial problem file state (that now has 0 goals)
-//			updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-//			updateSrv.request.knowledge = *git;
-//			update_knowledge_client.call(updateSrv);
-//
-//			// generate problem and plan from the initial problem file state and 1 added goal
-//			ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
-//			new_plan_recieved = false;
-//
-//			std_srvs::Empty empty;
-//			problem_client.call(empty);
-//			ros::Duration(1).sleep(); // sleep for a second
-//			planning_client.call(empty);
-//			ros::Duration(1).sleep(); // sleep for a second
-//			parsing_client.call(empty);
-//			ros::Duration(1).sleep(); // sleep for a second
-//
-//			while(!new_plan_recieved && ros::ok()) ros::spinOnce();
+
+        //solve each subgoal at the tactical level offline to obtain mission duration and drone(s) charge consumption
+        std::vector<double> mission_durations;
+        std::map<double,double>  mission_consumptions;
+        std::vector<std::string> mission_types;
+        std::vector<diagnostic_msgs::KeyValue> mission_locations;
+
+            //add mission pddl goals
+        std::map< std::string, std::vector<rosplan_knowledge_msgs::KnowledgeItem> >::iterator mit = missions.begin();
+        for(; mit!=missions.end(); mit++) {
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mit->second.begin();
+            for(; git!=mit->second.end(); git++) {
+                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
+                updateSrv.request.knowledge = *git;
+                update_knowledge_client.call(updateSrv);
+            }
+
+            // generate problem and plan from the initial problem file state and 1 added goal
+            ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
+            new_plan_recieved = false;
+
+            std_srvs::Empty empty;
+            problem_client.call(empty);
+            ros::Duration(1).sleep(); // sleep for a second
+            planning_client.call(empty);
+            ros::Duration(1).sleep(); // sleep for a second
+            parsing_client.call(empty);
+            ros::Duration(1).sleep(); // sleep for a second
+
+            while(!new_plan_recieved && ros::ok()) ros::spinOnce();
+
+                // start to compute duration
+
+            //			while(!new_plan_recieved && ros::ok()) ros::spinOnce();
 //
 //			// compute mission duration by parsing the obtained plan
 //			double max_time = 0;
@@ -273,15 +244,18 @@ namespace KCL_rosplan {
 //			missions[ss.str()];
 //			missions[ss.str()].push_back(*git);
 //
-//			// clear goals again
-//			updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
-//			updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-//			updateSrv.request.knowledge.attribute_name = "";
-//			updateSrv.request.knowledge.values.clear();
-//			update_knowledge_client.call(updateSrv);
-//		}
+			// clear goals again
+			updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
+			updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+			updateSrv.request.knowledge.attribute_name = "";
+			updateSrv.request.knowledge.values.clear();
+			update_knowledge_client.call(updateSrv);
 
-//		// add new mission goals to the strategic problem
+        }
+
+
+
+//		// add new mission goals and other info to the strategic problem
 //		ROS_INFO("KCL: (%s) Adding new mission goals.", ros::this_node::getName().c_str());
 //		for(int i=0; i<mission_durations.size(); i++) {
 //
