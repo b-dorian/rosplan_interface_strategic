@@ -39,11 +39,20 @@ namespace KCL_rosplan {
 		std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
+
+        struct mission_details{
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
+            std::string location;
+            std::vector<std::string> types;
+            std::vector<double> durations;
+            std::vector<double> consumption1;
+            std::vector<double> consumption2;
+        };
         
+        //name, goals, location, types, durations for each type, consumption for each type
+		std::map< std::string, mission_details > missions;
 
-		std::map< std::string, std::vector<rosplan_knowledge_msgs::KnowledgeItem> > missions;
-
-		/* planning interface */
+        /* planning interface */
 		ros::ServiceClient problem_client;
 		ros::ServiceClient planning_client;
 		ros::ServiceClient parsing_client;
@@ -53,8 +62,10 @@ namespace KCL_rosplan {
 		diagnostic_msgs::KeyValue getEndPoint(std::vector<rosplan_dispatch_msgs::EsterelPlanNode> & node) const;
 		int getMinTime(rosplan_dispatch_msgs::EsterelPlan& plan) const;
         std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem> splitSiteGoals(std::string,std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
+        std::string getMissionLocation(std::string);
 
-	public:
+
+            public:
 
 		/* constructor */
 		RPStrategicControl(ros::NodeHandle &nh);
