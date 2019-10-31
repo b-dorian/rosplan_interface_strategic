@@ -88,36 +88,32 @@ namespace KCL_rosplan {
 
 
 	// sort and store pddl goals into desired missions
-    std::string RPStrategicControl::splitInitialGoals(std::string mission_label, std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git){
+    std::pair<std::string,std::vector<std::string> > RPStrategicControl::splitIndividualGoals(int site, std::string knowledge){
 
-        std::string temp;
+        std::pair<std::string,std::vector<std::string> > name_and_type;
         std::stringstream ss;
-        int site = getSites(git).first;
-
-                if (git->attribute_name.compare("know") == 0) {
-
-                    if (git->values[0].value.compare("image") == 0) {
-                        ss.str("");
-                        ss << "site-" << site << "-image-mission-"+mission_label;
-                        temp = ss.str();
-                    }
-                    if (git->values[0].value.compare("thermal-image") == 0) {
-                        ss.str("");
-                        ss << "site-" << site << "-thermal-mission-"+mission_label;
-                        temp = ss.str();
-                    }
-                    if (git->values[0].value.compare("signal-measurement") == 0) {
-                        ss.str("");
-                        ss << "site-" << site << "-signal-mission-"+mission_label;
-                        temp = ss.str();
-                    }
-                }
-                if (git->attribute_name == "know-simultaneous") {
-                    ss.str("");
-                    ss << "site-" << site << "-simultaneous-mission";
-                    temp = ss.str();
-                }
-        return temp;
+        ss << "site-" << site << "-" << knowledge << "-mission-A";
+        if(!missions[ss.str()].deny_goal){
+            name_and_type.first = ss.str();
+            missions[ss.str()].deny_goal = true;
+        }
+        else {
+            missions[ss.str()].deny_goal = false;
+            ss.str("");
+            ss << "site-" << site << "-" << knowledge << "-mission-B";
+            name_and_type.first = ss.str();
+        }
+        if(knowledge.compare("image") == 0){
+            name_and_type.second.push_back("cm-1");
+        }
+        if(knowledge.compare("thermal-image") == 0){
+            name_and_type.second.push_back("tc-1");
+        }
+        if(knowledge.compare("signal-measurement") == 0){
+            name_and_type.second.push_back("sm-a-1");
+            name_and_type.second.push_back("sm-b-1");
+        }
+        return name_and_type;
 	}
 
 	// get mission location component
@@ -149,30 +145,263 @@ namespace KCL_rosplan {
         return location;
 	}
 
-    // arrange pddl goals into subgoals
+    // extract information from the initial problem and create missions based on it
 	void RPStrategicControl::createMissions(){
+
+        //add mission initial state propositions
         std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = goals.begin();
         for(; git!=goals.end(); git++) {
 
-            std::size_t antenna1 = git->values[1].value.find("antenna-1");
-            std::size_t antenna2 = git->values[1].value.find("antenna-2");
-            std::size_t antenna3 = git->values[1].value.find("antenna-3");
+            std::pair<std::string,std::vector<std::string> > name_and_type;
+            int site = getSites(git).first;
+            if (git->attribute_name.compare("know") == 0) {
 
-            if( (antenna1!=std::string::npos) || (antenna2!=std::string::npos) || (antenna3!=std::string::npos)) {
-                std::string mission_name = splitInitialGoals("A",git);
-                missions[mission_name].goals.push_back(*git);
-                missions[mission_name].site = getSites(git).first;
-                missions[mission_name].location = getMissionLocation(missions[mission_name].site);
-
+                if (git->values[0].value.compare("image") == 0) {
+                    name_and_type = splitIndividualGoals(site,"image");
+                }
+                if (git->values[0].value.compare("thermal-image") == 0) {
+                    name_and_type = splitIndividualGoals(site,"thermal-image");
+                }
+                if (git->values[0].value.compare("signal-measurement") == 0) {
+                    name_and_type = splitIndividualGoals(site,"signal-measurement");
+                }
             }
-            else{
-                std::string mission_name = splitInitialGoals("B",git);
-                missions[mission_name].goals.push_back(*git);
-                missions[mission_name].site = getSites(git).first;
-                missions[mission_name].location = getMissionLocation(missions[mission_name].site);
+            if (git->attribute_name == "know-simultaneous") {
+                std::stringstream ss;
+                ss << "site-" << site << "-simultaneous-mission";
+                name_and_type.first = ss.str();
+                name_and_type.second.push_back("im-a-2");
+                name_and_type.second.push_back("im-b-2");
+                name_and_type.second.push_back("im-c-2");
+            }
+                missions[name_and_type.first].goals.push_back(*git);
+                missions[name_and_type.first].site = getSites(git).first;
+                missions[name_and_type.first].location = getMissionLocation(missions[name_and_type.first].site);
+                missions[name_and_type.first].types = name_and_type.second;
+        }
+
+        // add mission initial state propositions and functionss
+        std::map< std::string, mission_details>::iterator mit = missions.begin();
+        for(; mit!=missions.end(); mit++) {
+
+            //add propositions
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
+            for (; pit != propositions.end(); pit++) { ;
+                if (getSites(pit).first == mit->second.site) {
+                    mit->second.propositions.push_back(*pit);
+                }
+                if ((pit->attribute_name.compare("inspects") == 0) || (pit->attribute_name.compare("is-available") == 0) || (pit->attribute_name.compare("is-dock") == 0)){
+                    mit->second.propositions.push_back(*pit);
+                }
+            }
+
+            //add functions
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = functions.begin();
+            for (; fit != functions.end(); fit++) { ;
+                if (((getSites(fit).first == mit->second.site) && (getSites(fit).second == mit->second.site)) ||
+                    ((getSites(fit).first == mit->second.site) && (getSites(fit).second == 0))) {
+                    if ((fit->attribute_name.compare("max-dock") == 0) &&
+                        (fit->values[0].value.compare(mit->second.location) == 0)) {
+                        fit->function_value = 0;
+                    }
+                    mit->second.functions.push_back(*fit);
+                }
+                if ((fit->attribute_name.compare("inspection-duration") == 0) || (fit->attribute_name.compare("capability-consumption") == 0)){
+                    mit->second.functions.push_back(*fit);
+                }
+
             }
         }
 	}
+
+    void RPStrategicControl::addDronesOffline(std::string mission_type,std::string mission_location){
+
+        //add propositions
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
+        for(; pit!=propositions.end(); pit++) {
+
+            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
+            for (int i = 0; i < pit->values.size() ; ++i){
+                if(mission_type.compare("cm-1") == 0){
+                    if(pit->values[i].value.compare("drone1") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("tc-1") == 0){
+                    if(pit->values[i].value.compare("drone2") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("sm-a-1") == 0){
+                    if(pit->values[i].value.compare("drone1") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("sm-b-1") == 0){
+                    if(pit->values[i].value.compare("drone3") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("im-a-2") == 0){
+                    if(pit->values[i].value.compare("drone1") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                    if(pit->values[i].value.compare("drone3") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("im-b-2") == 0){
+                    if(pit->values[i].value.compare("drone1") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                    if(pit->values[i].value.compare("drone4") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("im-a-2") == 0){
+                    if(pit->values[i].value.compare("drone3") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                    if(pit->values[i].value.compare("drone6") == 0){
+                        if(pit->attribute_name.compare("is-at") == 0){
+                            pit->values[1].value = mission_location;
+                        }
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+            }
+        }
+
+        //add functions and set charge
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = functions.begin();
+        for(; fit!=functions.end(); fit++) {
+            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
+            for (int i = 0; i < fit->values.size() ; ++i){
+                if(mission_type.compare("cm-1") == 0){
+                    if(fit->values[i].value.compare("drone1") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+
+                    }
+                }
+                if(mission_type.compare("tc-1") == 0){
+                    if(fit->values[i].value.compare("drone2") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("sm-a-1") == 0){
+                    if(fit->values[i].value.compare("drone1") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("sm-b-1") == 0){
+                    if(fit->values[i].value.compare("drone3") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("im-a-2") == 0){
+                    if(fit->values[i].value.compare("drone1") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                    if(fit->values[i].value.compare("drone3") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("im-b-2") == 0){
+                    if(fit->values[i].value.compare("drone1") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                    if(fit->values[i].value.compare("drone4") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+                if(mission_type.compare("im-a-2") == 0){
+                    if(fit->values[i].value.compare("drone3") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                    if(fit->values[i].value.compare("drone6") == 0){
+                        if(fit->attribute_name.compare("drone-charge") == 0){
+                            fit->function_value = 0;
+                        }
+                        updateSrv.request.knowledge = *fit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
+            }
+        }
+    }
 
     // retrieve and store initial state information
 	void RPStrategicControl::storeInitialState(){
@@ -261,54 +490,54 @@ namespace KCL_rosplan {
         std::map< std::string, mission_details>::iterator mit = missions.begin();
         for(; mit!=missions.end(); mit++) {
 
-            //add subgoal pddl goals
-            std::vector<rosplan_knowledge_msgs::KnowledgeItem> mission_goals = mit->second.goals;
-            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mission_goals.begin();
-            for(; git!=mission_goals.end(); git++) {;
+            for(int i = 0; i < mit->second.types.size() ; i++){
 
-                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                updateSrv.request.knowledge = *git;
-                update_knowledge_client.call(updateSrv);
-            }
 
-            //add subgoal initial state propositions
-            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
-            for(; pit!=propositions.end(); pit++) {;
-                if(getSites(pit).first == mit->second.site){
+                addDronesOffline(mit->second.types[i],mit->second.location);
+
+
+                //add subgoal pddl goals
+                std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mit->second.goals.begin();
+                for(; git!=mit->second.goals.end(); git++) {;
+                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
+                    updateSrv.request.knowledge = *git;
+                    update_knowledge_client.call(updateSrv);
+                }
+
+                //add subgoal initial state propositions
+                std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = mit->second.propositions.begin();
+                for(; pit!=mit->second.propositions.end(); pit++) {;
                     updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
                     updateSrv.request.knowledge = *pit;
                     update_knowledge_client.call(updateSrv);
                 }
-            }
 
-            //add subgoal initial state functions
-            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = functions.begin();
-            for(; fit!=functions.end(); fit++) {;
-                if((getSites(fit).first == mit->second.site) && (getSites(fit).second == mit->second.site)){
+                //add subgoal initial state functions
+                std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = mit->second.functions.begin();
+                for(; fit!=mit->second.functions.end(); fit++) {;
                     updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
                     updateSrv.request.knowledge = *fit;
                     update_knowledge_client.call(updateSrv);
                 }
-            }
 
 
-            // generate problem and plan from the initial problem file state and 1 added goal
-            ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
-            new_plan_recieved = false;
+                // generate problem and plan from the initial problem file state and 1 added goal
+                ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
+                new_plan_recieved = false;
 
-            std_srvs::Empty empty;
-            problem_client.call(empty);
-            ros::Duration(1).sleep(); // sleep for a second
-            planning_client.call(empty);
-            ros::Duration(1).sleep(); // sleep for a second
-            parsing_client.call(empty);
-            ros::Duration(1).sleep(); // sleep for a second
+                std_srvs::Empty empty;
+                problem_client.call(empty);
+                ros::Duration(1).sleep(); // sleep for a second
+                planning_client.call(empty);
+                ros::Duration(1).sleep(); // sleep for a second
+                parsing_client.call(empty);
+                ros::Duration(1).sleep(); // sleep for a second
 
-            while(!new_plan_recieved && ros::ok()) ros::spinOnce();
+                while(!new_plan_recieved && ros::ok()) ros::spinOnce();
 
                 // start to compute duration
 
-            //			while(!new_plan_recieved && ros::ok()) ros::spinOnce();
+                //			while(!new_plan_recieved && ros::ok()) ros::spinOnce();
 //
 //			// compute mission duration by parsing the obtained plan
 //			double max_time = 0;
@@ -336,7 +565,11 @@ namespace KCL_rosplan {
 //			missions[ss.str()];
 //			missions[ss.str()].push_back(*git);
 //
-            clearInitialState();
+                clearInitialState();
+
+            }
+
+
 
         }
 //

@@ -42,7 +42,24 @@ namespace KCL_rosplan {
 
         rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
 
+
+        struct drone{
+            int config;
+            int velocity;
+            double charge;
+            double max_charge;
+            bool camera;
+            bool thermal_camera;
+            bool signal_measurer;
+            std::string is_at;
+            std::string is_at_component;
+        };
+
+        std::vector<drone> drones;
+
+
         struct mission_details{
+            bool deny_goal;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
@@ -50,12 +67,15 @@ namespace KCL_rosplan {
             std::string location;
             std::vector<std::string> types;
             std::vector<double> durations;
+            std::vector<drone> drones;
             std::vector<double> consumption1;
             std::vector<double> consumption2;
         };
+
         
         //name, goals, location, types, durations for each type, consumption for each type
 		std::map< std::string, mission_details > missions;
+
 
         /* planning interface */
 		ros::ServiceClient problem_client;
@@ -67,11 +87,12 @@ namespace KCL_rosplan {
 		diagnostic_msgs::KeyValue getEndPoint(std::vector<rosplan_dispatch_msgs::EsterelPlanNode> & node) const;
 		int getMinTime(rosplan_dispatch_msgs::EsterelPlan& plan) const;
         std::pair<int,int> getSites(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
-        std::string splitInitialGoals(std::string,std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
+        std::pair<std::string,std::vector<std::string> > splitIndividualGoals(int, std::string);
         std::string getMissionLocation(int);
         void createMissions();
         void storeInitialState();
         void clearInitialState();
+        void addDronesOffline(std::string, std::string);
 
 
             public:
