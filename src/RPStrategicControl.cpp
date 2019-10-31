@@ -53,57 +53,76 @@ namespace KCL_rosplan {
 		}
 	}
 
-    std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem> RPStrategicControl::splitSiteGoals(std::string mission_label, std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git){
 
-        std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem> temp;
+    std::pair<int,int> RPStrategicControl::getSites(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator it){
+        std::pair<int,int> temp;
+        temp.first = 0;
+        temp.second = 0;
+
         for (int i = 0; i < 7; ++i) {
-
             std::stringstream site_ss1;
-            site_ss1 << "s" << (i*3+1);
+            site_ss1 << "s" << (i*3+1) <<"-";
             std::stringstream site_ss2;
-            site_ss2 << "s" << (i*3+2);
+            site_ss2 << "s" << (i*3+2) <<"-";
             std::stringstream site_ss3;
-            site_ss3 << "s" << (i*3+3);
+            site_ss3 << "s" << (i*3+3) <<"-";
 
-            std::size_t station1 = git->values[1].value.find(site_ss1.str());
-            std::size_t station2 = git->values[1].value.find(site_ss2.str());
-            std::size_t station3 = git->values[1].value.find(site_ss3.str());
+            for (int j = 0; j < it->values.size(); ++j) {
 
-            if( (station1!=std::string::npos) || (station2!=std::string::npos) || (station3!=std::string::npos)) {
+                std::size_t station1 = it->values[j].value.find(site_ss1.str());
+                std::size_t station2 = it->values[j].value.find(site_ss2.str());
+                std::size_t station3 = it->values[j].value.find(site_ss3.str());
+                if( (station1!=std::string::npos) || (station2!=std::string::npos) || (station3!=std::string::npos)) {
+                    if(temp.first == 0){
+                        temp.first = i+1;
+                    }
+                    else{
+                        temp.second = i+1;
+                    }
+                }
+            }
+        }
+        return temp;
+	};
 
-                std::stringstream ss;
+
+
+	// sort and store pddl goals into desired missions
+    std::string RPStrategicControl::splitInitialGoals(std::string mission_label, std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git){
+
+        std::string temp;
+        std::stringstream ss;
+        int site = getSites(git).first;
 
                 if (git->attribute_name.compare("know") == 0) {
 
                     if (git->values[0].value.compare("image") == 0) {
                         ss.str("");
-                        ss << "site-" << i + 1 << "-image-mission-"+mission_label;
-                        temp = std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem>(ss.str(),*git);
+                        ss << "site-" << site << "-image-mission-"+mission_label;
+                        temp = ss.str();
                     }
                     if (git->values[0].value.compare("thermal-image") == 0) {
                         ss.str("");
-                        ss << "site-" << i + 1 << "-thermal-mission-"+mission_label;
-                        temp = std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem>(ss.str(),*git);
+                        ss << "site-" << site << "-thermal-mission-"+mission_label;
+                        temp = ss.str();
                     }
                     if (git->values[0].value.compare("signal-measurement") == 0) {
                         ss.str("");
-                        ss << "site-" << i + 1 << "-signal-mission-"+mission_label;
-                        temp = std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem>(ss.str(),*git);
+                        ss << "site-" << site << "-signal-mission-"+mission_label;
+                        temp = ss.str();
                     }
                 }
                 if (git->attribute_name == "know-simultaneous") {
                     ss.str("");
-                    ss << "site-" << i + 1 << "-simultaneous-mission";
-                    temp = std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem>(ss.str(),*git);
+                    ss << "site-" << site << "-simultaneous-mission";
+                    temp = ss.str();
                 }
-            }
-        }
         return temp;
 	}
 
-    std::string RPStrategicControl::getMissionLocation(std::string mission_name){
+	// get mission location component
+    std::string RPStrategicControl::getMissionLocation(int site){
         std::string location = "";
-        int site = mission_name.at(5) -'0';
         switch(site){
             case 1:
                 location = "s1-tower-launchpad";
@@ -130,67 +149,8 @@ namespace KCL_rosplan {
         return location;
 	}
 
-
-	/**
-	 * mission generation service method
-	 */
-	bool RPStrategicControl::decomposeProblem(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
-
-		goals.clear();
-        propositions.clear();
-        functions.clear();
-
-		ROS_INFO("KCL: (%s) Decomposing problem by subgoals.", ros::this_node::getName().c_str());
-
-		// retrieve and store initial state information
-
-		    // goals
-		rosplan_knowledge_msgs::GetAttributeService currentGoalSrv;
-		if (!current_goals_client.call(currentGoalSrv)) {
-			ROS_ERROR("KCL: (%s) Failed to call goal service.", ros::this_node::getName().c_str());
-		} else {
-			goals = currentGoalSrv.response.attributes;
-		}
-
-            // propositions
-        rosplan_knowledge_msgs::GetAttributeService currentPropositionsSrv;
-        if (!current_propositions_client.call(currentPropositionsSrv)) {
-            ROS_ERROR("KCL: (%s) Failed to call propositions service.", ros::this_node::getName().c_str());
-        } else {
-            propositions = currentPropositionsSrv.response.attributes;
-        }
-
-            // functions
-        rosplan_knowledge_msgs::GetAttributeService currentFunctionsSrv;
-        if (!current_functions_client.call(currentFunctionsSrv)) {
-            ROS_ERROR("KCL: (%s) Failed to call functions service.", ros::this_node::getName().c_str());
-        } else {
-            functions = currentFunctionsSrv.response.attributes;
-        }
-
-
-		rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
-        updateSrv.request.knowledge.attribute_name = "";
-        updateSrv.request.knowledge.values.clear();
-
-        // clear old goals from initial problem file
-		updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
-		updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-		update_knowledge_client.call(updateSrv);
-
-		// clear old prepositions from initial problem file
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-        update_knowledge_client.call(updateSrv);
-
-		// clear old functions from initial problem file
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FUNCTION;
-        update_knowledge_client.call(updateSrv);
-
-        std::stringstream ss;
-
-		// arrange pddl goals into subgoals
+    // arrange pddl goals into subgoals
+	void RPStrategicControl::createMissions(){
         std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = goals.begin();
         for(; git!=goals.end(); git++) {
 
@@ -199,67 +159,152 @@ namespace KCL_rosplan {
             std::size_t antenna3 = git->values[1].value.find("antenna-3");
 
             if( (antenna1!=std::string::npos) || (antenna2!=std::string::npos) || (antenna3!=std::string::npos)) {
-                std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem> mission_goal = splitSiteGoals("A",git);
-                missions[mission_goal.first].goals.push_back(mission_goal.second);
-                missions[mission_goal.first].location = getMissionLocation(mission_goal.first);
+                std::string mission_name = splitInitialGoals("A",git);
+                missions[mission_name].goals.push_back(*git);
+                missions[mission_name].site = getSites(git).first;
+                missions[mission_name].location = getMissionLocation(missions[mission_name].site);
 
             }
             else{
-                std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem> mission_goal = splitSiteGoals("B",git);
-                missions[mission_goal.first].goals.push_back(mission_goal.second);
-                missions[mission_goal.first].location = getMissionLocation(mission_goal.first);
+                std::string mission_name = splitInitialGoals("B",git);
+                missions[mission_name].goals.push_back(*git);
+                missions[mission_name].site = getSites(git).first;
+                missions[mission_name].location = getMissionLocation(missions[mission_name].site);
             }
         }
+	}
+
+    // retrieve and store initial state information
+	void RPStrategicControl::storeInitialState(){
+
+        goals.clear();
+        propositions.clear();
+        functions.clear();
+
+        // store goals
+        rosplan_knowledge_msgs::GetAttributeService currentGoalSrv;
+        if (!current_goals_client.call(currentGoalSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call goal service.", ros::this_node::getName().c_str());
+        } else {
+            goals = currentGoalSrv.response.attributes;
+        }
+
+        // store propositions
+        rosplan_knowledge_msgs::GetAttributeService currentPropositionsSrv;
+        if (!current_propositions_client.call(currentPropositionsSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call propositions service.", ros::this_node::getName().c_str());
+        } else {
+            propositions = currentPropositionsSrv.response.attributes;
+        }
+
+        // store functions
+        rosplan_knowledge_msgs::GetAttributeService currentFunctionsSrv;
+        if (!current_functions_client.call(currentFunctionsSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call functions service.", ros::this_node::getName().c_str());
+        } else {
+            functions = currentFunctionsSrv.response.attributes;
+        }
+	}
+
+	void RPStrategicControl::clearInitialState(){
+        updateSrv.request.knowledge.attribute_name = "";
+        updateSrv.request.knowledge.values.clear();
+
+        // clear old goals from initial problem file
+        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
+        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        update_knowledge_client.call(updateSrv);
+
+        // clear old prepositions from initial problem file
+        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+        update_knowledge_client.call(updateSrv);
+
+        // clear old functions from initial problem file
+        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FUNCTION;
+        update_knowledge_client.call(updateSrv);
+    }
+
+	/**
+	 * mission generation service method
+	 */
+	bool RPStrategicControl::decomposeProblem(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+
+
+		ROS_INFO("KCL: (%s) Decomposing problem by subgoals.", ros::this_node::getName().c_str());
+
+        storeInitialState();
+        clearInitialState();
+        createMissions();
+
+        std::stringstream ss;
 
 
 
 
-
-
-
+//        std::map< std::string, mission_details>::iterator tmit = missions.begin();
+//        for(; tmit!=missions.end(); tmit++) {
+//            std::cout << tmit->first << "\n";
+//            std::cout << tmit->second.location << "\n";
 //
-//        std::map< std::string, mission_details>::iterator mit = missions.begin();
-//        for(; mit!=missions.end(); mit++) {
-//            std::cout << mit->first << "\n";
-//            std::cout << mit->second.location << "\n";
-//            std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals = mit->second.goals;
+//            std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals = tmit->second.goals;
 //            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = goals.begin();
-//
 //            for(; git!=goals.end(); git++) {
-//                std::cout << git->values[0].value << " " << git->values[1].value << "\n";
+// //               std::cout << git->values[0].value << " " << git->values[1].value << "\n";
 //            }
-//
-//
-//
 //        }
 
 
+        // tactical offline: generate a problem for each subgoal, find a plan, and extract mission details from the found plan
 
-            //add mission pddl goals
-//        std::map< std::string, std::vector<rosplan_knowledge_msgs::KnowledgeItem> >::iterator mit = missions.begin();
-//        for(; mit!=missions.end(); mit++) {
-//
-//
-//            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mit->second.begin();
-//            for(; git!=mit->second.end(); git++) {
-//                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-//                updateSrv.request.knowledge = *git;
-//                update_knowledge_client.call(updateSrv);
-//            }
-//
-//            // generate problem and plan from the initial problem file state and 1 added goal
-//            ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
-//            new_plan_recieved = false;
-//
-//            std_srvs::Empty empty;
-//            problem_client.call(empty);
-//            ros::Duration(1).sleep(); // sleep for a second
-//            planning_client.call(empty);
-//            ros::Duration(1).sleep(); // sleep for a second
-//            parsing_client.call(empty);
-//            ros::Duration(1).sleep(); // sleep for a second
-//
-//            while(!new_plan_recieved && ros::ok()) ros::spinOnce();
+        std::map< std::string, mission_details>::iterator mit = missions.begin();
+        for(; mit!=missions.end(); mit++) {
+
+            //add subgoal pddl goals
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem> mission_goals = mit->second.goals;
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mission_goals.begin();
+            for(; git!=mission_goals.end(); git++) {;
+
+                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
+                updateSrv.request.knowledge = *git;
+                update_knowledge_client.call(updateSrv);
+            }
+
+            //add subgoal initial state propositions
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
+            for(; pit!=propositions.end(); pit++) {;
+                if(getSites(pit).first == mit->second.site){
+                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
+                    updateSrv.request.knowledge = *pit;
+                    update_knowledge_client.call(updateSrv);
+                }
+            }
+
+            //add subgoal initial state functions
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = functions.begin();
+            for(; fit!=functions.end(); fit++) {;
+                if((getSites(fit).first == mit->second.site) && (getSites(fit).second == mit->second.site)){
+                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
+                    updateSrv.request.knowledge = *fit;
+                    update_knowledge_client.call(updateSrv);
+                }
+            }
+
+
+            // generate problem and plan from the initial problem file state and 1 added goal
+            ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
+            new_plan_recieved = false;
+
+            std_srvs::Empty empty;
+            problem_client.call(empty);
+            ros::Duration(1).sleep(); // sleep for a second
+            planning_client.call(empty);
+            ros::Duration(1).sleep(); // sleep for a second
+            parsing_client.call(empty);
+            ros::Duration(1).sleep(); // sleep for a second
+
+            while(!new_plan_recieved && ros::ok()) ros::spinOnce();
 
                 // start to compute duration
 
@@ -291,14 +336,9 @@ namespace KCL_rosplan {
 //			missions[ss.str()];
 //			missions[ss.str()].push_back(*git);
 //
-			// clear goals again
-//			updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
-//			updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-//			updateSrv.request.knowledge.attribute_name = "";
-//			updateSrv.request.knowledge.values.clear();
-//			update_knowledge_client.call(updateSrv);
+            clearInitialState();
 
-//        }
+        }
 //
 
 

@@ -40,8 +40,13 @@ namespace KCL_rosplan {
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
 
+        rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
+
         struct mission_details{
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
+            int site;
             std::string location;
             std::vector<std::string> types;
             std::vector<double> durations;
@@ -61,8 +66,12 @@ namespace KCL_rosplan {
 		bool new_plan_recieved;
 		diagnostic_msgs::KeyValue getEndPoint(std::vector<rosplan_dispatch_msgs::EsterelPlanNode> & node) const;
 		int getMinTime(rosplan_dispatch_msgs::EsterelPlan& plan) const;
-        std::pair< std::string, rosplan_knowledge_msgs::KnowledgeItem> splitSiteGoals(std::string,std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
-        std::string getMissionLocation(std::string);
+        std::pair<int,int> getSites(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
+        std::string splitInitialGoals(std::string,std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
+        std::string getMissionLocation(int);
+        void createMissions();
+        void storeInitialState();
+        void clearInitialState();
 
 
             public:
