@@ -15,7 +15,7 @@
 
 	<!-- knowledge base -->
 	<node name="rosplan_knowledge_base" pkg="rosplan_knowledge_base" type="knowledgeBase" respawn="false" output="screen">
-		<param name="domain_path" value="$(arg domain_strategic)" />
+		<param name="domain_path" value="$(arg domain_tactical)" />
 		<param name="problem_path" value="$(arg problem_normal)" />
 		<param name="database_path" value="$(find rosplan_interface_strategic)/common/mongoDB/" />
 		<!-- conditional planning flags -->
@@ -60,7 +60,7 @@
 		<arg name="domain_path"          value="$(arg domain_strategic)" />
 		<arg name="problem_path"         value="$(find rosplan_interface_strategic)/common/problem_strategic.pddl" />
 		<arg name="data_path"            value="$(find rosplan_interface_strategic)/common/strategic" />
-		<arg name="planner_command"      value="timeout 10 $(find rosplan_planning_system)/common/bin/popf DOMAIN PROBLEM" />
+		<arg name="planner_command"      value="timeout 100 $(find rosplan_planning_system)/common/bin/popf DOMAIN PROBLEM" />
 	</include>
 
 	<!-- tactical planner interface -->
@@ -69,10 +69,10 @@
 		<arg name="use_problem_topic"    value="true" />
 		<arg name="problem_topic"        value="/tactical_problem_interface/problem_instance" />
 		<arg name="planner_topic"        value="planner_output" />
-		<arg name="domain_path"          value="$(arg domain_tactical" />
+		<arg name="domain_path"          value="$(arg domain_tactical)" />
 		<arg name="problem_path"         value="$(find rosplan_interface_strategic)/common/problem_tactical.pddl" />
 		<arg name="data_path"            value="$(find rosplan_interface_strategic)/common/tactical" />
-		<arg name="planner_command"      value="timeout 10 $(find rosplan_planning_system)/common/bin/popf DOMAIN PROBLEM" />
+		<arg name="planner_command"      value="timeout 100 $(find rosplan_planning_system)/common/bin/popf DOMAIN PROBLEM" />
 	</include>
 
 	<!-- strategic problem generation -->

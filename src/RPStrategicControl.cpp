@@ -648,26 +648,27 @@ namespace KCL_rosplan {
 
                 // start to compute duration
 
-                //      while(!new_plan_recieved && ros::ok()) ros::spinOnce();
-//
-//      // compute mission duration by parsing the obtained plan
-//      double max_time = 0;
-//      std::vector<rosplan_dispatch_msgs::EsterelPlanNode>::iterator nit = last_plan.nodes.begin();
-//      for(; nit != last_plan.nodes.end(); nit++) {
-//        //problem that this will overshoot time of plan now - however, could be fine as we should do upper estimate
-//        double time = nit->action.dispatch_time + nit->action.duration;
-//        if(time > max_time) max_time = time;
-//        //get the only first non move or undock action
-//        if(start_locations.size() <= mission_durations.size() && !(nit->action.name == "goto_waypoint" || nit->action.name == "undock" || nit->action.name == "localise")){
-//          //loop through parameters of that action
-//          for(std::vector<diagnostic_msgs::KeyValue>::iterator i = nit->action.parameters.begin(); i != nit->action.parameters.end(); ++i){
-//            if(i->key == "wp"){
-//              //first one that is a waypoint parameter is where the mission has to start (at_mission)
-//              start_locations.push_back(*i);
-//            }
-//          }
-//        }
-//      }
+                double max_time = 0;
+                std::vector<rosplan_dispatch_msgs::EsterelPlanNode>::iterator nit = last_plan.nodes.begin();
+                for(; nit != last_plan.nodes.end(); nit++) {
+                    //problem that this will overshoot time of plan now - however, could be fine as we should do upper estimate
+                    double time = nit->action.dispatch_time + nit->action.duration;
+                    if(time > max_time) max_time = time;
+                    //get the only first non move or undock action
+//                    if(start_locations.size() <= mission_durations.size() && !(nit->action.name == "goto_waypoint" || nit->action.name == "undock" || nit->action.name == "localise")){
+//                      //loop through parameters of that action
+//                      for(std::vector<diagnostic_msgs::KeyValue>::iterator i = nit->action.parameters.begin(); i != nit->action.parameters.end(); ++i){
+//                        if(i->key == "wp"){
+//                          //first one that is a waypoint parameter is where the mission has to start (at_mission)
+//                          start_locations.push_back(*i);
+//                        }
+//                      }
+//                    }
+                }
+                mit->second.durations.push_back(max_time);
+//                std::cout << max_time << "\n";
+//                unsigned int microseconds = 50000000;
+//                usleep(microseconds);
 //
 //      //get the end points
 //      end_points.push_back(getEndPoint(last_plan.nodes));
