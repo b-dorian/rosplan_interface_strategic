@@ -2,10 +2,12 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
 
 #include "rosplan_knowledge_msgs/KnowledgeItem.h"
 #include "rosplan_knowledge_msgs/KnowledgeUpdateService.h"
 #include "rosplan_knowledge_msgs/GetAttributeService.h"
+#include "rosplan_knowledge_msgs/GetInstanceService.h"
 #include "rosplan_dispatch_msgs/EsterelPlan.h"
 #include "rosplan_dispatch_msgs/ActionDispatch.h"
 
@@ -31,6 +33,7 @@ namespace KCL_rosplan {
 
 		/* rosplan knowledge interface */
 		ros::ServiceClient update_knowledge_client;
+        ros::ServiceClient current_instances_client;
 		ros::ServiceClient current_goals_client;
 		ros::ServiceClient current_propositions_client;
         ros::ServiceClient current_functions_client;
@@ -39,6 +42,7 @@ namespace KCL_rosplan {
 		std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
+        std::vector<std::string> instances;
 
         rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
 
@@ -63,6 +67,7 @@ namespace KCL_rosplan {
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem> instances;
             int site;
             std::string location;
             std::vector<std::string> types;
@@ -93,6 +98,7 @@ namespace KCL_rosplan {
         void storeInitialState();
         void clearInitialState();
         void addDronesOffline(std::string, std::string);
+        void addInstances(std::string);
 
 
             public:
