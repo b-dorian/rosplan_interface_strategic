@@ -61,6 +61,10 @@ namespace KCL_rosplan {
 
         std::vector<drone> drones;
 
+        struct type{
+
+        };
+
 
         struct mission_details{
             bool deny_goal;
@@ -72,7 +76,9 @@ namespace KCL_rosplan {
             std::string location;
             std::vector<std::string> types;
             std::vector<double> durations;
-            std::vector<drone> drones;
+            std::map<std::string,std::vector<rosplan_knowledge_msgs::KnowledgeItem> > type_goals;
+            std::map<std::string,drone> type_drones;
+
         };
 
         
@@ -95,8 +101,9 @@ namespace KCL_rosplan {
         void createMissions();
         void storeInitialState();
         void clearInitialState();
-        void addDronesOffline(std::string, std::string);
+        void addDronesOffline(std::string, std::string, std::string);
         void addInstances(std::string);
+
 
 
             public:
