@@ -73,8 +73,6 @@ namespace KCL_rosplan {
             std::vector<std::string> types;
             std::vector<double> durations;
             std::vector<drone> drones;
-            std::vector<double> consumption1;
-            std::vector<double> consumption2;
         };
 
         
