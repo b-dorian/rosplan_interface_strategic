@@ -2,8 +2,8 @@
 <launch>
 
 	<!-- arguments -->
-	<arg name="domain_strategic"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-domain-smartstrategic.pddl" />
-	<arg name="domain_tactical"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-domain-tactical.pddl" />
+	<arg name="domain_strategic"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-domain-all.pddl" />
+	<arg name="domain_tactical"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-domain-all.pddl" />
 	<arg name="domain_all"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-domain-all.pddl" />
 	<arg name="problem_normal"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-problem-21base.pddl" />
 

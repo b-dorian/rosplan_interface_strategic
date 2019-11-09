@@ -12,13 +12,16 @@ namespace KCL_rosplan {
         node_handle = &nh;
 
         // knowledge interface
+        clear_knowledge_client = nh.serviceClient<std_srvs::Empty>("/rosplan_knowledge_base/clear");
+
         update_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base/update");
-        clear_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base/clear");
+
         current_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/goals");
         current_propositions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/propositions");
         current_functions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/functions");
-        current_instances_client = nh.serviceClient<rosplan_knowledge_msgs::GetInstanceService>("/rosplan_knowledge_base/instances");
-        //current_tils_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/timed_knowledge");
+        current_metric_client = nh.serviceClient<rosplan_knowledge_msgs::GetMetricService>("/rosplan_knowledge_base/state/metric");
+        current_instances_client = nh.serviceClient<rosplan_knowledge_msgs::GetInstanceService>("/rosplan_knowledge_base/state/instances");
+        current_tils_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/timed_knowledge");
 
 
         // planning interface
@@ -741,71 +744,112 @@ namespace KCL_rosplan {
         }
     }
 
-    void RPStrategicControl:: addInstances(std::string mission_type){
+    void RPStrategicControl:: addInstances(std::string mission_type, int mission_site){
 
 
         updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
         updateSrv.request.knowledge.knowledge_type = 0;
-        updateSrv.request.knowledge.instance_type = "drone";
 
-        for(int i = 0; i < instances.size(); ++i) {
+
+        for(int i = 0; i < component_instances.size(); ++i) {
+            updateSrv.request.knowledge.instance_type = "component";
 
             if (mission_type.compare("strategic") == 0) {
-                updateSrv.request.knowledge.instance_name = instances[i];
+                updateSrv.request.knowledge.instance_name = "s1-tower-launchpad";
+                update_knowledge_client.call(updateSrv);
+                updateSrv.request.knowledge.instance_name = "s4-tower-launchpad";
+                update_knowledge_client.call(updateSrv);
+                updateSrv.request.knowledge.instance_name = "s7-tower-launchpad";
+                update_knowledge_client.call(updateSrv);
+                updateSrv.request.knowledge.instance_name = "s10-tower-launchpad";
+                update_knowledge_client.call(updateSrv);
+                updateSrv.request.knowledge.instance_name = "s13-tower-launchpad";
+                update_knowledge_client.call(updateSrv);
+                updateSrv.request.knowledge.instance_name = "s16-tower-launchpad";
+                update_knowledge_client.call(updateSrv);
+                updateSrv.request.knowledge.instance_name = "s19-tower-launchpad";
+                update_knowledge_client.call(updateSrv);
+            }
+            else{
+                std::stringstream station_ss1;
+                station_ss1 << "s" << mission_site << "-";
+                std::stringstream station_ss2;
+                station_ss2 << "s" << mission_site+1 << "-";
+                std::stringstream station_ss3;
+                station_ss3 << "s" << mission_site+2 << "-";
+
+                std::size_t station1 = component_instances[i].find(station_ss1.str());
+                std::size_t station2 = component_instances[i].find(station_ss2.str());
+                std::size_t station3 = component_instances[i].find(station_ss3.str());
+
+                if( (station1!=std::string::npos) || (station2!=std::string::npos) || (station3!=std::string::npos)) {
+                    updateSrv.request.knowledge.instance_name = component_instances[i];
+                    update_knowledge_client.call(updateSrv);
+                }
+            }
+
+        }
+
+
+        for(int i = 0; i < drone_instances.size(); ++i) {
+            updateSrv.request.knowledge.instance_type = "drone";
+
+            if (mission_type.compare("strategic") == 0) {
+                updateSrv.request.knowledge.instance_name = drone_instances[i];
                 update_knowledge_client.call(updateSrv);
             }
 
             // 1 drone action
             if (mission_type.compare("cm-1") == 0) {
-                if(instances[i].compare("drone1") == 0){
+                if(drone_instances[i].compare("drone1") == 0){
                     updateSrv.request.knowledge.instance_name = "drone1";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("tc-1") == 0) {
-                if(instances[i].compare("drone2") == 0){
+                if(drone_instances[i].compare("drone2") == 0){
                     updateSrv.request.knowledge.instance_name = "drone2";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("sm-a-1") == 0) {
-                if(instances[i].compare("drone1") == 0){
+                if(drone_instances[i].compare("drone1") == 0){
                     updateSrv.request.knowledge.instance_name = "drone1";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("sm-b-1") == 0) {
-                if(instances[i].compare("drone3") == 0){
+                if(drone_instances[i].compare("drone3") == 0){
                     updateSrv.request.knowledge.instance_name = "drone3";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("im-a-2") == 0) {
-                if(instances[i].compare("drone1") == 0){
+                if(drone_instances[i].compare("drone1") == 0){
                     updateSrv.request.knowledge.instance_name = "drone1";
                     update_knowledge_client.call(updateSrv);
                 }
-                if(instances[i].compare("drone3") == 0){
+                if(drone_instances[i].compare("drone3") == 0){
                     updateSrv.request.knowledge.instance_name = "drone3";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("im-b-2") == 0) {
-                if(instances[i].compare("drone1") == 0){
+                if(drone_instances[i].compare("drone1") == 0){
                     updateSrv.request.knowledge.instance_name = "drone1";
                     update_knowledge_client.call(updateSrv);
                 }
-                if(instances[i].compare("drone4") == 0){
+                if(drone_instances[i].compare("drone4") == 0){
                     updateSrv.request.knowledge.instance_name = "drone4";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("im-c-2") == 0) {
-                if(instances[i].compare("drone3") == 0){
+                if(drone_instances[i].compare("drone3") == 0){
                     updateSrv.request.knowledge.instance_name = "drone3";
                     update_knowledge_client.call(updateSrv);
                 }
-                if(instances[i].compare("drone6") == 0){
+                if(drone_instances[i].compare("drone6") == 0){
                     updateSrv.request.knowledge.instance_name = "drone6";
                     update_knowledge_client.call(updateSrv);
                 }
@@ -813,51 +857,51 @@ namespace KCL_rosplan {
 
             // 2 drone action (without im)
             if (mission_type.compare("cm-2") == 0) {
-                if(instances[i].compare("drone1") == 0){
+                if(drone_instances[i].compare("drone1") == 0){
                     updateSrv.request.knowledge.instance_name = "drone1";
                     update_knowledge_client.call(updateSrv);
                 }
-                if(instances[i].compare("drone4") == 0){
+                if(drone_instances[i].compare("drone4") == 0){
                     updateSrv.request.knowledge.instance_name = "drone4";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("tc-2") == 0) {
-                if(instances[i].compare("drone2") == 0){
+                if(drone_instances[i].compare("drone2") == 0){
                     updateSrv.request.knowledge.instance_name = "drone2";
                     update_knowledge_client.call(updateSrv);
                 }
-                if(instances[i].compare("drone5") == 0){
+                if(drone_instances[i].compare("drone5") == 0){
                     updateSrv.request.knowledge.instance_name = "drone5";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("sm-a-2") == 0) {
-                if(instances[i].compare("drone1") == 0){
+                if(drone_instances[i].compare("drone1") == 0){
                     updateSrv.request.knowledge.instance_name = "drone1";
                     update_knowledge_client.call(updateSrv);
                 }
-                if(instances[i].compare("drone3") == 0){
+                if(drone_instances[i].compare("drone3") == 0){
                     updateSrv.request.knowledge.instance_name = "drone3";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("sm-b-2") == 0) {
-                if(instances[i].compare("drone1") == 0){
+                if(drone_instances[i].compare("drone1") == 0){
                     updateSrv.request.knowledge.instance_name = "drone1";
                     update_knowledge_client.call(updateSrv);
                 }
-                if(instances[i].compare("drone4") == 0){
+                if(drone_instances[i].compare("drone4") == 0){
                     updateSrv.request.knowledge.instance_name = "drone4";
                     update_knowledge_client.call(updateSrv);
                 }
             }
             if (mission_type.compare("sm-c-2") == 0) {
-                if(instances[i].compare("drone3") == 0){
+                if(drone_instances[i].compare("drone3") == 0){
                     updateSrv.request.knowledge.instance_name = "drone3";
                     update_knowledge_client.call(updateSrv);
                 }
-                if(instances[i].compare("drone6") == 0){
+                if(drone_instances[i].compare("drone6") == 0){
                     updateSrv.request.knowledge.instance_name = "drone6";
                     update_knowledge_client.call(updateSrv);
                 }
@@ -874,7 +918,10 @@ namespace KCL_rosplan {
         goals.clear();
         propositions.clear();
         functions.clear();
-        instances.clear();
+        drone_instances.clear();
+        component_instances.clear();
+        metric = rosplan_knowledge_msgs::KnowledgeItem();
+        timed_knowledge.clear();
 
         // store goals
         rosplan_knowledge_msgs::GetAttributeService currentGoalSrv;
@@ -900,6 +947,31 @@ namespace KCL_rosplan {
             functions = currentFunctionsSrv.response.attributes;
         }
 
+        // store metric
+        rosplan_knowledge_msgs::GetMetricService currentMetricSrv;
+        if (!current_metric_client.call(currentMetricSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call functions service.", ros::this_node::getName().c_str());
+        } else {
+            metric = currentMetricSrv.response.metric;
+        }
+
+        // store instances
+        rosplan_knowledge_msgs::GetInstanceService currentInstancesSrv;
+        currentInstancesSrv.request.type_name = "drone";
+        if (!current_instances_client.call(currentInstancesSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call instances service.", ros::this_node::getName().c_str());
+        } else {
+            drone_instances = currentInstancesSrv.response.instances;
+        }
+        currentInstancesSrv.request.type_name = "component";
+        if (!current_instances_client.call(currentInstancesSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call instances service.", ros::this_node::getName().c_str());
+        } else {
+            component_instances = currentInstancesSrv.response.instances;
+        }
+
+
+
         // store tils
         rosplan_knowledge_msgs::GetAttributeService currentTilsSrv;
         if (!current_tils_client.call(currentTilsSrv)) {
@@ -910,21 +982,6 @@ namespace KCL_rosplan {
 
 
 
-        // store instances, need to debug, give "Failed to call instances service"
-        for (int i = 0; i < 12; ++i){
-            std::stringstream ss;
-            ss << "drone" << i+1;
-            instances.push_back(ss.str());
-        }
-
-//
-//        rosplan_knowledge_msgs::GetInstanceService currentInstancesSrv;
-//        currentInstancesSrv.request.type_name = "drone";
-//        if (!current_instances_client.call(currentInstancesSrv)) {
-//            ROS_ERROR("KCL: (%s) Failed to call instances service.", ros::this_node::getName().c_str());
-//        } else {
-//            instances = currentInstancesSrv.response.instances;
-//        }
 
 
 
@@ -985,18 +1042,22 @@ namespace KCL_rosplan {
         clear_knowledge_client.call(empty);
 
 
-
         createMissions();
 
         std::map< std::string, mission_details>::iterator mit = missions.begin();
         for(; mit!=missions.end(); mit++) {
+
+            // add metric
+            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_METRIC;
+            updateSrv.request.knowledge = metric;
+            update_knowledge_client.call(updateSrv);
 
             // add is-perspective propositions as mission is within time window
             diagnostic_msgs::KeyValue param;
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
             updateSrv.request.knowledge.values.clear();
             updateSrv.request.knowledge.knowledge_type = 1;
-            updateSrv.request.knowledge.attribute_name = "is_perspective";
+            updateSrv.request.knowledge.attribute_name = "is-perspective";
             param.key = "perspective";
             param.value = "launch-pad";
             updateSrv.request.knowledge.values.push_back(param);
@@ -1019,12 +1080,13 @@ namespace KCL_rosplan {
             updateSrv.request.knowledge.values.push_back(param);
             update_knowledge_client.call(updateSrv);
 
+
             for(int i = 0; i < mit->second.types.size() ; i++){
 
                 //add instances
-                addInstances(mit->second.types[i]);
+                addInstances(mit->second.types[i],mit->second.site);
 
-                //add drone propositions and goals
+                //add drones information
                 addDronesOffline(mit->first, mit->second.types[i],mit->second.location);
 
                 //add subgoal pddl goals
@@ -1109,7 +1171,12 @@ namespace KCL_rosplan {
 
 
             //add instances
-        addInstances("strategic");
+        addInstances("strategic",0);
+
+            //add metric
+        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_METRIC;
+        updateSrv.request.knowledge = metric;
+        update_knowledge_client.call(updateSrv);
 
 
         //add non-mission strategic problem details
@@ -1135,11 +1202,13 @@ namespace KCL_rosplan {
                     update_knowledge_client.call(updateSrv);
                 }
                 if((pit->values[i].value.compare("s1-tower-launchpad") == 0) || (pit->values[i].value.compare("s4-tower-launchpad") == 0) || (pit->values[i].value.compare("s7-tower-launchpad") == 0) || (pit->values[i].value.compare("s10-tower-launchpad") == 0) || (pit->values[i].value.compare("s13-tower-launchpad") == 0) || (pit->values[i].value.compare("s16-tower-launchpad") == 0) || (pit->values[i].value.compare("s19-tower-launchpad") == 0)){
+                    std::cout << pit->attribute_name << "\n";
                     if(pit->attribute_name.compare("is-perspective") == 0){
                         updateSrv.request.knowledge = *pit;
                         update_knowledge_client.call(updateSrv);
                     }
                 }
+
             }
         }
 
@@ -1186,6 +1255,12 @@ namespace KCL_rosplan {
         mit = missions.begin();
         for(; mit!=missions.end(); mit++) {
 
+            updateSrv.request.knowledge.is_negative = false;
+            updateSrv.request.knowledge.values.clear();
+            updateSrv.request.knowledge.initial_time.sec = 0;
+            updateSrv.request.knowledge.initial_time.nsec = 0;
+
+
             // add mission object
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
             updateSrv.request.knowledge.knowledge_type = 0;
@@ -1199,8 +1274,6 @@ namespace KCL_rosplan {
             updateSrv.request.knowledge.knowledge_type = 1;
             updateSrv.request.knowledge.values.clear();
             updateSrv.request.knowledge.attribute_name = "mission_complete";
-            updateSrv.request.knowledge.initial_time.sec = 0;
-            updateSrv.request.knowledge.initial_time.nsec = 0;
             updateSrv.request.knowledge.function_value = 0;
             updateSrv.request.knowledge.instance_type = "";
             updateSrv.request.knowledge.instance_name = "";
@@ -1209,6 +1282,7 @@ namespace KCL_rosplan {
             updateSrv.request.knowledge.values.push_back(param);
             update_knowledge_client.call(updateSrv);
 
+            // add mission active status
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
             updateSrv.request.knowledge.values.clear();
             updateSrv.request.knowledge.knowledge_type = 1;
@@ -1218,6 +1292,7 @@ namespace KCL_rosplan {
             updateSrv.request.knowledge.values.push_back(param);
             update_knowledge_client.call(updateSrv);
 
+            // add mission location
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
             updateSrv.request.knowledge.knowledge_type = 1;
             updateSrv.request.knowledge.values.clear();
@@ -1246,7 +1321,7 @@ namespace KCL_rosplan {
             updateSrv.request.knowledge.values[1].value = "b";
             update_knowledge_client.call(updateSrv);
 
-            // add mission's details
+            // add mission type and duration
             for(int i = 0; i < mit->second.types.size() ; i++){
                 updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
                 updateSrv.request.knowledge.values.clear();

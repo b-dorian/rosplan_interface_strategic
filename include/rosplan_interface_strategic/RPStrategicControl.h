@@ -7,6 +7,7 @@
 #include "rosplan_knowledge_msgs/KnowledgeItem.h"
 #include "rosplan_knowledge_msgs/KnowledgeUpdateService.h"
 #include "rosplan_knowledge_msgs/GetAttributeService.h"
+#include "rosplan_knowledge_msgs/GetMetricService.h"
 #include "rosplan_knowledge_msgs/GetInstanceService.h"
 #include "rosplan_dispatch_msgs/EsterelPlan.h"
 #include "rosplan_dispatch_msgs/ActionDispatch.h"
@@ -40,13 +41,18 @@ namespace KCL_rosplan {
 		ros::ServiceClient current_propositions_client;
         ros::ServiceClient current_functions_client;
         ros::ServiceClient current_knowledge_client;
+        ros::ServiceClient current_constants_client;
+        ros::ServiceClient current_metric_client;
+
         ros::ServiceClient current_tils_client;
 
 		std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
-        std::vector<std::string> instances;
+        std::vector<std::string> drone_instances;
+        std::vector<std::string> component_instances;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> timed_knowledge;
+        rosplan_knowledge_msgs::KnowledgeItem metric;
 
         rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
 
@@ -106,7 +112,7 @@ namespace KCL_rosplan {
         void storeInitialState();
         //void clearInitialState();
         void addDronesOffline(std::string, std::string, std::string);
-        void addInstances(std::string);
+        void addInstances(std::string, int);
 
             public:
 
