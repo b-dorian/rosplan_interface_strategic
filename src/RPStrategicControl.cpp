@@ -13,11 +13,12 @@ namespace KCL_rosplan {
 
         // knowledge interface
         update_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base/update");
+        clear_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base/clear");
         current_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/goals");
         current_propositions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/propositions");
         current_functions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/functions");
         current_instances_client = nh.serviceClient<rosplan_knowledge_msgs::GetInstanceService>("/rosplan_knowledge_base/instances");
-        current_tils_client = nh.serviceClient<rosplan_knowledge_msgs::GetInstanceService>("/rosplan_knowledge_base/timed_knowledge");
+        //current_tils_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/timed_knowledge");
 
 
         // planning interface
@@ -38,6 +39,8 @@ namespace KCL_rosplan {
         planning_client = nh.serviceClient<std_srvs::Empty>(planTopic);
         parsing_client = nh.serviceClient<std_srvs::Empty>(parsTopic);
         problem_client_params = nh.serviceClient<rosplan_dispatch_msgs::ProblemService>(probTopicParams);
+
+
 
     }
 
@@ -900,7 +903,7 @@ namespace KCL_rosplan {
         // store tils
         rosplan_knowledge_msgs::GetAttributeService currentTilsSrv;
         if (!current_tils_client.call(currentTilsSrv)) {
-            ROS_ERROR("KCL: (%s) Failed to call functions service.", ros::this_node::getName().c_str());
+            ROS_ERROR("KCL: (%s) Failed to call tils service.", ros::this_node::getName().c_str());
         } else {
             timed_knowledge = currentTilsSrv.response.attributes;
         }
@@ -928,37 +931,38 @@ namespace KCL_rosplan {
 
     }
 
-    void RPStrategicControl::clearInitialState(){
-        updateSrv.request.knowledge.attribute_name = "";
-        updateSrv.request.knowledge.values.clear();
-
-        // clear old goals from initial problem file
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
-        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-        update_knowledge_client.call(updateSrv);
-
-        // clear old prepositions from initial problem file
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-        update_knowledge_client.call(updateSrv);
-
-        // clear old functions from initial problem file
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FUNCTION;
-        update_knowledge_client.call(updateSrv);
-
-        // clear old functions from initial problem file
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-        update_knowledge_client.call(updateSrv);
-
-        // clear instances
-        updateSrv.request.knowledge.instance_type = "drone";
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::INSTANCE;
-        update_knowledge_client.call(updateSrv);
-
-    }
+//    void RPStrategicControl::clearInitialState(){
+//        updateSrv.request.knowledge.attribute_name = "";
+//        updateSrv.request.knowledge.values.clear();
+//
+//        // clear old goals from initial problem file
+//        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
+//        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+//        update_knowledge_client.call(updateSrv);
+//
+//        // clear old prepositions from initial problem file
+//        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+//        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+//        update_knowledge_client.call(updateSrv);
+//
+//        // clear old functions from initial problem file
+//        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+//        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FUNCTION;
+//        update_knowledge_client.call(updateSrv);
+//
+//        // clear instances
+//        updateSrv.request.knowledge.instance_type = "drone";
+//        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+//        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::INSTANCE;
+//        update_knowledge_client.call(updateSrv);
+//
+//
+////        // is there a til remover? clear old tils from initial problem file
+////        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+////        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
+////        update_knowledge_client.call(updateSrv);
+//
+//    }
 
     /**
      * mission generation service method
@@ -973,7 +977,15 @@ namespace KCL_rosplan {
         ROS_INFO("KCL: (%s) Decomposing problem by subgoals.", ros::this_node::getName().c_str());
 
         storeInitialState();
-        clearInitialState();
+
+
+        //clearInitialState();
+
+        std_srvs::Empty empty;
+        clear_knowledge_client.call(empty);
+
+
+
         createMissions();
 
         std::map< std::string, mission_details>::iterator mit = missions.begin();
@@ -1052,7 +1064,6 @@ namespace KCL_rosplan {
                 problem_to_path.request.problem_string_response = true;
                 problem_client_params.call(problem_to_path);
 
-                std_srvs::Empty empty;
                 problem_client.call(empty);
                 ros::Duration(1).sleep(); // sleep for a second
                 planning_client.call(empty);
@@ -1083,7 +1094,8 @@ namespace KCL_rosplan {
                 }
                 mit->second.durations.push_back(max_time);
 //                usleep(50000000);
-                clearInitialState();
+                //clearInitialState();
+                clear_knowledge_client.call(empty);
             }
 
         }

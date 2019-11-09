@@ -34,6 +34,7 @@ namespace KCL_rosplan {
 
 		/* rosplan knowledge interface */
 		ros::ServiceClient update_knowledge_client;
+        ros::ServiceClient clear_knowledge_client;
         ros::ServiceClient current_instances_client;
 		ros::ServiceClient current_goals_client;
 		ros::ServiceClient current_propositions_client;
@@ -103,7 +104,7 @@ namespace KCL_rosplan {
         std::string getMissionLocation(int);
         void createMissions();
         void storeInitialState();
-        void clearInitialState();
+        //void clearInitialState();
         void addDronesOffline(std::string, std::string, std::string);
         void addInstances(std::string);
 
