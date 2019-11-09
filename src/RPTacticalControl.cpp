@@ -17,12 +17,17 @@ namespace KCL_rosplan {
 		std::string parsTopic = "/rosplan_parsing_interface/parse_plan";
 		std::string dispTopic = "/rosplan_plan_dispatch/dispatch_plan";
 
+        std::string probTopicParams = "/rosplan_problem_interface/problem_generation_server_params";
+
 		nh.getParam("mission_goals_topic", goalTopic);
 		nh.getParam("cancel_service_topic", cancTopic);
 		nh.getParam("problem_service_topic", probTopic);
 		nh.getParam("planning_service_topic", planTopic);
 		nh.getParam("parsing_service_topic", parsTopic);
 		nh.getParam("dispatch_service_topic", dispTopic);
+        nh.getParam("dispatch_service_topic", dispTopic);
+
+        nh.getParam("problem_service_topic_params", probTopicParams);
 
 		mission_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>(goalTopic);
 		cancel_client = nh.serviceClient<std_srvs::Empty>(cancTopic);
@@ -30,6 +35,8 @@ namespace KCL_rosplan {
 		planning_client = nh.serviceClient<std_srvs::Empty>(planTopic);
 		parsing_client = nh.serviceClient<std_srvs::Empty>(parsTopic);
 		dispatch_client = nh.serviceClient<rosplan_dispatch_msgs::DispatchService>(dispTopic);
+
+        problem_client_params = nh.serviceClient<rosplan_dispatch_msgs::ProblemService>(probTopicParams);
 	}
 
 	/**
@@ -117,7 +124,7 @@ namespace KCL_rosplan {
 		std::string mission;
 		bool found_mission = false;
 		for(size_t i=0; i<msg->parameters.size(); i++) {
-			if(0==msg->parameters[i].key.compare("m")) {
+			if(0==msg->parameters[i].key.compare("mission")) {
 				mission = msg->parameters[i].value;
 				found_mission = true;
 			}

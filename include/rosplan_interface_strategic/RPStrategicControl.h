@@ -10,6 +10,7 @@
 #include "rosplan_knowledge_msgs/GetInstanceService.h"
 #include "rosplan_dispatch_msgs/EsterelPlan.h"
 #include "rosplan_dispatch_msgs/ActionDispatch.h"
+#include "rosplan_dispatch_msgs/ProblemService.h"
 
 #include "std_msgs/String.h"
 #include "std_srvs/Empty.h"
@@ -38,11 +39,13 @@ namespace KCL_rosplan {
 		ros::ServiceClient current_propositions_client;
         ros::ServiceClient current_functions_client;
         ros::ServiceClient current_knowledge_client;
+        ros::ServiceClient current_tils_client;
 
 		std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
         std::vector<std::string> instances;
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem> timed_knowledge;
 
         rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
 
@@ -65,13 +68,13 @@ namespace KCL_rosplan {
 
         };
 
-
         struct mission_details{
             bool deny_goal;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> instances;
+            std::vector<rosplan_knowledge_msgs::KnowledgeItem> timed_knowledge;
             int site;
             std::string location;
             std::vector<std::string> types;
@@ -80,16 +83,16 @@ namespace KCL_rosplan {
             std::map<std::string,drone> type_drones;
 
         };
-
         
         //name, goals, location, types, durations for each type, consumption for each type
 		std::map< std::string, mission_details > missions;
-
 
         /* planning interface */
 		ros::ServiceClient problem_client;
 		ros::ServiceClient planning_client;
 		ros::ServiceClient parsing_client;
+
+        ros::ServiceClient problem_client_params;
 
 		rosplan_dispatch_msgs::EsterelPlan last_plan;
 		bool new_plan_recieved;
@@ -103,8 +106,6 @@ namespace KCL_rosplan {
         void clearInitialState();
         void addDronesOffline(std::string, std::string, std::string);
         void addInstances(std::string);
-
-
 
             public:
 

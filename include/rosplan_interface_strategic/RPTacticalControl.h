@@ -12,6 +12,7 @@
 #include "rosplan_dispatch_msgs/ActionDispatch.h"
 #include "rosplan_dispatch_msgs/ActionFeedback.h"
 #include "rosplan_dispatch_msgs/DispatchService.h"
+#include "rosplan_dispatch_msgs/ProblemService.h"
 
 #include "std_msgs/String.h"
 #include "std_srvs/Empty.h"
@@ -38,6 +39,8 @@ namespace KCL_rosplan {
         ros::ServiceClient planning_client;
         ros::ServiceClient parsing_client;
         ros::ServiceClient dispatch_client;
+
+        ros::ServiceClient problem_client_params;
 
         ros::ServiceClient local_update_knowledge_client;
 
