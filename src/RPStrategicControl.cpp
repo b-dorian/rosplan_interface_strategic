@@ -776,11 +776,11 @@ namespace KCL_rosplan {
             }
             else{
                 std::stringstream station_ss1;
-                station_ss1 << "s" << mission_site << "-";
+                station_ss1 << "s" << (mission_site-1)*3+1 << "-";
                 std::stringstream station_ss2;
-                station_ss2 << "s" << mission_site+1 << "-";
+                station_ss2 << "s" << (mission_site-1)*3+2 << "-";
                 std::stringstream station_ss3;
-                station_ss3 << "s" << mission_site+2 << "-";
+                station_ss3 << "s" << (mission_site-1)*3+3 << "-";
 
                 std::size_t station1 = component_instances[i].find(station_ss1.str());
                 std::size_t station2 = component_instances[i].find(station_ss2.str());
@@ -1024,20 +1024,23 @@ namespace KCL_rosplan {
             param.value = "launch-pad";
             updateSrv.request.knowledge.values.push_back(param);
             param.key = "component";
-            param.value = mit->second.location;
-            updateSrv.request.knowledge.values.push_back(param);
-            update_knowledge_client.call(updateSrv);
 
-            updateSrv.request.knowledge.values.pop_back();
             std::stringstream ss;
-            ss << "s" << mit->second.site+1 << "-tower-launchpad";
+            ss << "s" << (mit->second.site-1)*3+1 << "-tower-launchpad";
             param.value = ss.str();
             updateSrv.request.knowledge.values.push_back(param);
             update_knowledge_client.call(updateSrv);
 
             updateSrv.request.knowledge.values.pop_back();
             ss.str("");
-            ss << "s" << mit->second.site+2 << "-tower-launchpad";
+            ss << "s" << (mit->second.site-1)*3+2 << "-tower-launchpad";
+            param.value = ss.str();
+            updateSrv.request.knowledge.values.push_back(param);
+            update_knowledge_client.call(updateSrv);
+
+            updateSrv.request.knowledge.values.pop_back();
+            ss.str("");
+            ss << "s" << (mit->second.site-1)*3+3 << "-tower-launchpad";
             param.value = ss.str();
             updateSrv.request.knowledge.values.push_back(param);
             update_knowledge_client.call(updateSrv);
