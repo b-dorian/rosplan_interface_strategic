@@ -96,10 +96,11 @@ namespace KCL_rosplan {
 
         /* planning interface */
 		ros::ServiceClient problem_client;
+        ros::ServiceClient problem_client_params;
 		ros::ServiceClient planning_client;
 		ros::ServiceClient parsing_client;
 
-        ros::ServiceClient problem_client_params;
+
 
 		rosplan_dispatch_msgs::EsterelPlan last_plan;
 		bool new_plan_recieved;

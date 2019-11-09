@@ -26,22 +26,25 @@ namespace KCL_rosplan {
 
         // planning interface
         std::string probTopic = "/rosplan_problem_interface/problem_generation_server";
+        std::string probTopicParams = "/rosplan_problem_interface/problem_generation_server_params";
         std::string planTopic = "/rosplan_planner_interface/planning_server";
         std::string parsTopic = "/rosplan_parsing_interface/parse_plan";
 
-        std::string probTopicParams = "/rosplan_problem_interface/problem_generation_server_params";
+
 
 
         node_handle->getParam("problem_service_topic", probTopic);
+        node_handle->getParam("problem_service_topic_params", probTopicParams);
         node_handle->getParam("planning_service_topic", planTopic);
         node_handle->getParam("parsing_service_topic", parsTopic);
 
-        node_handle->getParam("problem_service_topic_params", probTopicParams);
+
 
         problem_client = nh.serviceClient<std_srvs::Empty>(probTopic);
+        problem_client_params = nh.serviceClient<rosplan_dispatch_msgs::ProblemService>(probTopicParams);
         planning_client = nh.serviceClient<std_srvs::Empty>(planTopic);
         parsing_client = nh.serviceClient<std_srvs::Empty>(parsTopic);
-        problem_client_params = nh.serviceClient<rosplan_dispatch_msgs::ProblemService>(probTopicParams);
+
 
 
 
@@ -69,6 +72,7 @@ namespace KCL_rosplan {
             res.attributes = missions.find(mission_name)->second.goals; // all pddl goals in the mission
         }
     }
+
 
 
     std::pair<int,int> RPStrategicControl::getSites(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator it){
@@ -980,46 +984,7 @@ namespace KCL_rosplan {
             timed_knowledge = currentTilsSrv.response.attributes;
         }
 
-
-
-
-
-
-
     }
-
-//    void RPStrategicControl::clearInitialState(){
-//        updateSrv.request.knowledge.attribute_name = "";
-//        updateSrv.request.knowledge.values.clear();
-//
-//        // clear old goals from initial problem file
-//        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
-//        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-//        update_knowledge_client.call(updateSrv);
-//
-//        // clear old prepositions from initial problem file
-//        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-//        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-//        update_knowledge_client.call(updateSrv);
-//
-//        // clear old functions from initial problem file
-//        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-//        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FUNCTION;
-//        update_knowledge_client.call(updateSrv);
-//
-//        // clear instances
-//        updateSrv.request.knowledge.instance_type = "drone";
-//        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-//        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::INSTANCE;
-//        update_knowledge_client.call(updateSrv);
-//
-//
-////        // is there a til remover? clear old tils from initial problem file
-////        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-////        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-////        update_knowledge_client.call(updateSrv);
-//
-//    }
 
     /**
      * mission generation service method
@@ -1034,9 +999,6 @@ namespace KCL_rosplan {
         ROS_INFO("KCL: (%s) Decomposing problem by subgoals.", ros::this_node::getName().c_str());
 
         storeInitialState();
-
-
-        //clearInitialState();
 
         std_srvs::Empty empty;
         clear_knowledge_client.call(empty);
@@ -1119,17 +1081,25 @@ namespace KCL_rosplan {
                 ROS_INFO("KCL: (%s) Generating plan for %s.", ros::this_node::getName().c_str(), ss.str().c_str());
                 new_plan_recieved = false;
 
-                rosplan_dispatch_msgs::ProblemService problem_to_path;
-//                ss.str("");
-//                ss << "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical/problem_" <<
-                problem_to_path.request.problem_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical/problem_"+mit->first+".pddl";
-                problem_to_path.request.problem_string_response = true;
-                problem_client_params.call(problem_to_path);
+                // export tactical problem to file
+                rosplan_dispatch_msgs::ProblemService problem_to_file;
+                ss.str("");
+                ss << "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical/problem_" << mit->first << "_" << mit->second.types[i] << ".pddl";
+                problem_to_file.request.problem_path = ss.str();
+                problem_to_file.request.problem_string_response = true;
+                problem_client_params.call(problem_to_file);
+                ros::Duration(1).sleep(); // sleep for a second
 
                 problem_client.call(empty);
                 ros::Duration(1).sleep(); // sleep for a second
                 planning_client.call(empty);
                 ros::Duration(1).sleep(); // sleep for a second
+
+                // export offline tactical plan to file
+                ss.str("");
+                ss << "cp /home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical/plan.pddl /home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical/plan_" << mit->first << "_" << mit->second.types[i] << ".pddl";
+                system(ss.str().c_str());
+
                 parsing_client.call(empty);
                 ros::Duration(1).sleep(); // sleep for a second
 
@@ -1156,7 +1126,7 @@ namespace KCL_rosplan {
                 }
                 mit->second.durations.push_back(max_time);
 //                usleep(50000000);
-                //clearInitialState();
+
                 clear_knowledge_client.call(empty);
             }
 
