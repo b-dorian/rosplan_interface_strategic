@@ -225,8 +225,19 @@ namespace KCL_rosplan {
             std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
             for (; pit != propositions.end(); pit++) { ;
                 if (getSites(pit).first == mit->second.site) {
-                    if(pit->values[0].key.compare("drone") != 0)mit->second.propositions.push_back(*pit);
+
+                    // add site charging dock only
+                    if(pit->attribute_name.compare("is-charging-dock") == 0){
+                        if(pit->values[0].value.compare(mit->second.location) == 0){
+                            mit->second.propositions.push_back(*pit);
+                        }
+                    }
+                    // if not a drone or charging dock proposition, add
+                    if((pit->values[0].key.compare("drone") != 0) && (pit->attribute_name.compare("is-charging-dock") != 0)){
+                        mit->second.propositions.push_back(*pit);
+                    }
                 }
+                // add constant propositions
                 if ((pit->attribute_name.compare("inspects") == 0) || (pit->attribute_name.compare("is-available") == 0) || (pit->attribute_name.compare("is-dock") == 0)){
                     mit->second.propositions.push_back(*pit);
                 }
