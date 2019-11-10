@@ -83,6 +83,7 @@ namespace KCL_rosplan {
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> instances;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> timed_knowledge;
             int site;
+            int station;
             std::string location;
             std::vector<std::string> types;
             std::vector<double> durations;
@@ -107,8 +108,10 @@ namespace KCL_rosplan {
 		diagnostic_msgs::KeyValue getEndPoint(std::vector<rosplan_dispatch_msgs::EsterelPlanNode> & node) const;
 		int getMinTime(rosplan_dispatch_msgs::EsterelPlan& plan) const;
         std::pair<int,int> getSites(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
-        std::pair<std::string,std::vector<std::string> > splitIndividualGoals(int, std::string);
-        std::string getMissionLocation(int);
+        std::pair<int,int> getStations(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
+        std::pair<std::string,std::vector<std::string> > splitIndividualGoals(int, int, std::string);
+        std::string getMissionStrategicLocation(int);
+        std::string getMissionTacticalLocation(int);
         void createMissions();
         void storeInitialState();
         //void clearInitialState();

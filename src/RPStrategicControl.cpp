@@ -106,26 +106,44 @@ namespace KCL_rosplan {
         return temp;
     };
 
+    std::pair<int,int> RPStrategicControl::getStations(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator it){
+        std::pair<int,int> temp;
+        temp.first = 0;
+        temp.second = 0;
+
+        for (int i = 0; i < 21; ++i) {
+            std::stringstream station_ss;
+            station_ss << "s" << i+1 <<"-";
+
+            for (int j = 0; j < it->values.size(); ++j) {
+
+                std::size_t station = it->values[j].value.find(station_ss.str());
+
+                if(station!=std::string::npos){
+                    if(temp.first == 0){
+                        temp.first = i+1;
+                    }
+                    else{
+                        temp.second = i+1;
+                    }
+                }
+            }
+        }
+        return temp;
+    };
+
 
 
     // sort and store pddl goals into desired missions
-    std::pair<std::string,std::vector<std::string> > RPStrategicControl::splitIndividualGoals(int site, std::string knowledge){
+    std::pair<std::string,std::vector<std::string> > RPStrategicControl::splitIndividualGoals(int station, int site, std::string knowledge){
 
         std::pair<std::string,std::vector<std::string> > name_and_type;
         std::stringstream ss;
-        ss << "site-" << site << "-" << knowledge << "-mission-A";
-        if(!missions[ss.str()].deny_goal){
-            name_and_type.first = ss.str();
-            missions[ss.str()].deny_goal = true;
-        }
-        else {
-            missions[ss.str()].deny_goal = false;
-            ss.str("");
-            ss << "site-" << site << "-" << knowledge << "-mission-B";
-            name_and_type.first = ss.str();
-        }
+        ss << "station-" << station << "-" << knowledge;
+        name_and_type.first = ss.str();
+
         if(knowledge.compare("image") == 0){
-            //1 drone action
+            //1 drone action);
             name_and_type.second.push_back("cm-1");
             //2 drone action
             //name_and_type.second.push_back("cm-2");
@@ -149,7 +167,7 @@ namespace KCL_rosplan {
     }
 
     // get mission location component
-    std::string RPStrategicControl::getMissionLocation(int site){
+    std::string RPStrategicControl::getMissionStrategicLocation(int site){
         std::string location = "";
         switch(site){
             case 1:
@@ -177,6 +195,36 @@ namespace KCL_rosplan {
         return location;
     }
 
+    // get mission location component
+    std::string RPStrategicControl::getMissionTacticalLocation(int station){
+        std::string location = "";
+        switch(station){
+            case 1:location = "s1-tower-launchpad";break;
+            case 2:location = "s2-tower-launchpad";break;
+            case 3:location = "s3-tower-launchpad";break;
+            case 4:location = "s4-tower-launchpad";break;
+            case 5:location = "s5-tower-launchpad";break;
+            case 6:location = "s6-tower-launchpad";break;
+            case 7:location = "s7-tower-launchpad";break;
+            case 8:location = "s8-tower-launchpad";break;
+            case 9:location = "s9-tower-launchpad";break;
+            case 10:location = "s10-tower-launchpad";break;
+            case 11:location = "s11-tower-launchpad";break;
+            case 12:location = "s12-tower-launchpad";break;
+            case 13:location = "s13-tower-launchpad";break;
+            case 14:location = "s14-tower-launchpad";break;
+            case 15:location = "s15-tower-launchpad";break;
+            case 16:location = "s16-tower-launchpad";break;
+            case 17:location = "s17-tower-launchpad";break;
+            case 18:location = "s18-tower-launchpad";break;
+            case 19:location = "s19-tower-launchpad";break;
+            case 20:location = "s20-tower-launchpad";break;
+            case 21:location = "s21-tower-launchpad";break;
+        }
+        return location;
+    }
+
+
     // extract information from the initial problem and create missions based on it
     void RPStrategicControl::createMissions(){
 
@@ -189,30 +237,32 @@ namespace KCL_rosplan {
 
             std::pair<std::string,std::vector<std::string> > name_and_type;
             int site = getSites(git).first;
+            int station = getStations(git).first;
             if (git->attribute_name.compare("know") == 0) {
 
                 if (git->values[0].value.compare("image") == 0) {
-                    name_and_type = splitIndividualGoals(site,"image");
+                    name_and_type = splitIndividualGoals(station,site,"image");
                 }
                 if (git->values[0].value.compare("thermal-image") == 0) {
-                    name_and_type = splitIndividualGoals(site,"thermal-image");
+                    name_and_type = splitIndividualGoals(station,site,"thermal-image");
                 }
                 if (git->values[0].value.compare("signal-measurement") == 0) {
-                    name_and_type = splitIndividualGoals(site,"signal-measurement");
+                    name_and_type = splitIndividualGoals(station,site,"signal-measurement");
                 }
             }
             if (git->attribute_name == "know-simultaneous") {
                 std::stringstream ss;
-                ss << "site-" << site << "-simultaneous-mission";
+                ss << "station-" << station << "-inventory-mapping";
                 name_and_type.first = ss.str();
                 name_and_type.second.push_back("im-a-2");
 
-                //name_and_type.second.push_back("im-b-2");
-                //name_and_type.second.push_back("im-c-2");
+                name_and_type.second.push_back("im-b-2");
+                name_and_type.second.push_back("im-c-2");
             }
             missions[name_and_type.first].goals.push_back(*git);
-            missions[name_and_type.first].site = getSites(git).first;
-            missions[name_and_type.first].location = getMissionLocation(missions[name_and_type.first].site);
+            missions[name_and_type.first].station = station;
+            missions[name_and_type.first].site = site;
+            missions[name_and_type.first].location = getMissionStrategicLocation(site);
             missions[name_and_type.first].types = name_and_type.second;
 
         }
@@ -759,20 +809,11 @@ namespace KCL_rosplan {
             updateSrv.request.knowledge.instance_type = "component";
 
             if (mission_type.compare("strategic") == 0) {
-                updateSrv.request.knowledge.instance_name = "s1-tower-launchpad";
-                update_knowledge_client.call(updateSrv);
-                updateSrv.request.knowledge.instance_name = "s4-tower-launchpad";
-                update_knowledge_client.call(updateSrv);
-                updateSrv.request.knowledge.instance_name = "s7-tower-launchpad";
-                update_knowledge_client.call(updateSrv);
-                updateSrv.request.knowledge.instance_name = "s10-tower-launchpad";
-                update_knowledge_client.call(updateSrv);
-                updateSrv.request.knowledge.instance_name = "s13-tower-launchpad";
-                update_knowledge_client.call(updateSrv);
-                updateSrv.request.knowledge.instance_name = "s16-tower-launchpad";
-                update_knowledge_client.call(updateSrv);
-                updateSrv.request.knowledge.instance_name = "s19-tower-launchpad";
-                update_knowledge_client.call(updateSrv);
+
+                for (int i = 0; i < 21; i++){
+                    updateSrv.request.knowledge.instance_name= getMissionTacticalLocation(i+1);
+                    update_knowledge_client.call(updateSrv);
+                }
             }
             else{
                 std::stringstream station_ss1;
@@ -1143,6 +1184,8 @@ namespace KCL_rosplan {
         ROS_INFO("KCL: (%s) Generating Strategic Problem", ros::this_node::getName().c_str());
 
 
+        //add non-mission strategic problem details
+
             //add instances
         addInstances("strategic",0);
 
@@ -1151,19 +1194,34 @@ namespace KCL_rosplan {
         updateSrv.request.knowledge = metric;
         update_knowledge_client.call(updateSrv);
 
+            // add perspective constraints
+        for (int i = 0; i < 21; i++){
 
-        //add non-mission strategic problem details
+            diagnostic_msgs::KeyValue param;
+            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
+            updateSrv.request.knowledge.knowledge_type = 1;
+            updateSrv.request.knowledge.values.clear();
+            updateSrv.request.knowledge.attribute_name = "station-available";
+            param.key = "component";
+            param.value = getMissionTacticalLocation(i+1);
+            updateSrv.request.knowledge.values.push_back(param);
+            update_knowledge_client.call(updateSrv);
+
+        }
 
             //add propositions
         std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
         for(; pit!=propositions.end(); pit++) {
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
 
-            if(pit->attribute_name.compare("is-charging-dock") == 0){
-                updateSrv.request.knowledge = *pit;
-                update_knowledge_client.call(updateSrv);
-            }
             for (int i = 0; i < pit->values.size() ; ++i){
+
+                if(pit->attribute_name.compare("is-charging-dock") == 0){
+                    if((pit->values[i].value.compare("s1-tower-launchpad") == 0) || (pit->values[i].value.compare("s4-tower-launchpad") == 0) || (pit->values[i].value.compare("s7-tower-launchpad") == 0) || (pit->values[i].value.compare("s10-tower-launchpad") == 0) || (pit->values[i].value.compare("s13-tower-launchpad") == 0) || (pit->values[i].value.compare("s16-tower-launchpad") == 0) || (pit->values[i].value.compare("s19-tower-launchpad") == 0)){
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
 
                 if(pit->values[i].key.compare("drone") == 0){
                     if(pit->attribute_name.compare("is-at") == 0){
@@ -1265,33 +1323,30 @@ namespace KCL_rosplan {
             updateSrv.request.knowledge.values.push_back(param);
             update_knowledge_client.call(updateSrv);
 
-            // add mission location
+            // add mission strategic location
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
             updateSrv.request.knowledge.knowledge_type = 1;
             updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.attribute_name = "mission_at";
+            updateSrv.request.knowledge.attribute_name = "mission_site";
             param.key = "mission";
             param.value = mit->first;
             updateSrv.request.knowledge.values.push_back(param);
             param.key = "component";
-            param.value = mit->second.location;
+            param.value = getMissionStrategicLocation(mit->second.site);
             updateSrv.request.knowledge.values.push_back(param);
             update_knowledge_client.call(updateSrv);
 
-            // add prespective classes
+            // add mission tactical location
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
             updateSrv.request.knowledge.knowledge_type = 1;
             updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.attribute_name = "perspective_class_available";
+            updateSrv.request.knowledge.attribute_name = "mission_station";
+            param.key = "mission";
+            param.value = mit->first;
+            updateSrv.request.knowledge.values.push_back(param);
             param.key = "component";
-            param.value = mit->second.location;
+            param.value = getMissionTacticalLocation(mit->second.station);
             updateSrv.request.knowledge.values.push_back(param);
-            param.key = "perspective_class";
-            param.value = "a";
-            updateSrv.request.knowledge.values.push_back(param);
-            update_knowledge_client.call(updateSrv);
-
-            updateSrv.request.knowledge.values[1].value = "b";
             update_knowledge_client.call(updateSrv);
 
             // add mission type and duration
