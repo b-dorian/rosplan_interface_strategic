@@ -28,6 +28,7 @@ namespace KCL_rosplan {
         std::string probTopic = "/rosplan_problem_interface/problem_generation_server";
         std::string probTopicParams = "/rosplan_problem_interface/problem_generation_server_params";
         std::string planTopic = "/rosplan_planner_interface/planning_server";
+        std::string planTopicParams = "/rosplan_planner_interface/planning_server_params";
         std::string parsTopic = "/rosplan_parsing_interface/parse_plan";
 
 
@@ -36,6 +37,7 @@ namespace KCL_rosplan {
         node_handle->getParam("problem_service_topic", probTopic);
         node_handle->getParam("problem_service_topic_params", probTopicParams);
         node_handle->getParam("planning_service_topic", planTopic);
+        node_handle->getParam("planning_service_topic_params", planTopicParams);
         node_handle->getParam("parsing_service_topic", parsTopic);
 
 
@@ -43,6 +45,7 @@ namespace KCL_rosplan {
         problem_client = nh.serviceClient<std_srvs::Empty>(probTopic);
         problem_client_params = nh.serviceClient<rosplan_dispatch_msgs::ProblemService>(probTopicParams);
         planning_client = nh.serviceClient<std_srvs::Empty>(planTopic);
+        planning_client_params = nh.serviceClient<rosplan_dispatch_msgs::PlanningService>(planTopicParams);
         parsing_client = nh.serviceClient<std_srvs::Empty>(parsTopic);
 
 
@@ -1106,8 +1109,23 @@ namespace KCL_rosplan {
 
                 problem_client.call(empty);
                 ros::Duration(1).sleep(); // sleep for a second
-                planning_client.call(empty);
-                ros::Duration(1).sleep(); // sleep for a second
+
+                if ((mit->second.types[i].compare("im-a-2") == 0) || (mit->second.types[i].compare("im-b-2") == 0) || (mit->second.types[i].compare("im-c-2") == 0)){
+                    rosplan_dispatch_msgs::PlanningService planService;
+                    planService.request.domain_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/droneacharya/droneacharya-domain-all.pddl";
+                    planService.request.problem_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/problem_tactical.pddl";
+                    planService.request.data_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical";
+                    planService.request.planner_command = "timeout 200 /home/nq/ROSPlan/src/rosplan_interface_strategic/common/optic-cplex DOMAIN PROBLEM";
+                    planService.request.use_problem_topic = false;
+
+                    planning_client_params.call(planService);
+                    ros::Duration(1).sleep(); // sleep for a second
+                }
+                else{
+                    planning_client.call(empty);
+                    ros::Duration(1).sleep(); // sleep for a second
+                }
+
 
                 // export offline tactical plan to file
                 ss.str("");
@@ -1170,11 +1188,14 @@ namespace KCL_rosplan {
         for(; pit!=propositions.end(); pit++) {
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
 
-            if(pit->attribute_name.compare("is-charging-dock") == 0){
-                updateSrv.request.knowledge = *pit;
-                update_knowledge_client.call(updateSrv);
-            }
             for (int i = 0; i < pit->values.size() ; ++i){
+
+                if(pit->attribute_name.compare("is-charging-dock") == 0){
+                    if((pit->values[i].value.compare("s1-tower-launchpad") == 0) || (pit->values[i].value.compare("s4-tower-launchpad") == 0) || (pit->values[i].value.compare("s7-tower-launchpad") == 0) || (pit->values[i].value.compare("s10-tower-launchpad") == 0) || (pit->values[i].value.compare("s13-tower-launchpad") == 0) || (pit->values[i].value.compare("s16-tower-launchpad") == 0) || (pit->values[i].value.compare("s19-tower-launchpad") == 0)){
+                        updateSrv.request.knowledge = *pit;
+                        update_knowledge_client.call(updateSrv);
+                    }
+                }
 
                 if(pit->values[i].key.compare("drone") == 0){
                     if(pit->attribute_name.compare("is-at") == 0){
@@ -1280,7 +1301,7 @@ namespace KCL_rosplan {
             updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
             updateSrv.request.knowledge.knowledge_type = 1;
             updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.attribute_name = "mission_at";
+            updateSrv.request.knowledge.attribute_name = "mission_site";
             param.key = "mission";
             param.value = mit->first;
             updateSrv.request.knowledge.values.push_back(param);

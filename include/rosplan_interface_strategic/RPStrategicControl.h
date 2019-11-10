@@ -12,6 +12,7 @@
 #include "rosplan_dispatch_msgs/EsterelPlan.h"
 #include "rosplan_dispatch_msgs/ActionDispatch.h"
 #include "rosplan_dispatch_msgs/ProblemService.h"
+#include "rosplan_dispatch_msgs/PlanningService.h"
 
 #include "std_msgs/String.h"
 #include "std_srvs/Empty.h"
@@ -98,6 +99,7 @@ namespace KCL_rosplan {
 		ros::ServiceClient problem_client;
         ros::ServiceClient problem_client_params;
 		ros::ServiceClient planning_client;
+        ros::ServiceClient planning_client_params;
 		ros::ServiceClient parsing_client;
 
 
