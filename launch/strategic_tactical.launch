@@ -6,6 +6,7 @@
 	<arg name="domain_tactical"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-domain-all.pddl" />
 	<arg name="domain_all"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-domain-all.pddl" />
 	<arg name="problem_normal"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-problem-21base.pddl" />
+<!--	<arg name="problem_normal"	default="$(find rosplan_interface_strategic)/common/problem_strategic_init.pddl" />-->
 
 	<!-- scene database (MongoDB) -->
 	<include file="$(find mongodb_store)/launch/mongodb_store.launch">
@@ -16,6 +17,20 @@
 
 	<!-- knowledge base -->
 	<node name="rosplan_knowledge_base" pkg="rosplan_knowledge_base" type="knowledgeBase" respawn="false" output="screen">
+		<param name="domain_path" value="$(arg domain_all)" />
+		<param name="problem_path" value="$(arg problem_normal)" />
+		<param name="database_path" value="$(find rosplan_interface_strategic)/common/mongoDB/" />
+		<!-- conditional planning flags -->
+		<param name="use_unknowns" value="false" />
+	</node>
+	<node name="rosplan_knowledge_base_strategic" pkg="rosplan_knowledge_base" type="knowledgeBase" respawn="false" output="screen">
+		<param name="domain_path" value="$(arg domain_all)" />
+		<param name="problem_path" value="$(arg problem_normal)" />
+		<param name="database_path" value="$(find rosplan_interface_strategic)/common/mongoDB/" />
+		<!-- conditional planning flags -->
+		<param name="use_unknowns" value="false" />
+	</node>
+	<node name="rosplan_knowledge_base_tactical" pkg="rosplan_knowledge_base" type="knowledgeBase" respawn="false" output="screen">
 		<param name="domain_path" value="$(arg domain_all)" />
 		<param name="problem_path" value="$(arg problem_normal)" />
 		<param name="database_path" value="$(find rosplan_interface_strategic)/common/mongoDB/" />
@@ -37,11 +52,113 @@
 	</node>
 
 	<!-- tactical plan control -->
-	<node name="rosplan_interface_tactical_control" pkg="rosplan_interface_strategic" type="rptacticalcontrol" respawn="false" output="screen">
+	<node name="rosplan_interface_tactical_control_cm_1" pkg="rosplan_interface_strategic" type="rptacticalcontrol" respawn="false" output="screen">
 
 		<!-- action server -->
 		<param name="knowledge_base" value="rosplan_knowledge_base" />
 		<param name="pddl_action_name" value="complete_mission_cm_1" />
+		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />
+		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />
+
+		<!-- tactical planning interfaces -->
+		<param name="cancel_service_topic" value="/tactical_plan_dispatcher/cancel_dispatch" />
+		<param name="problem_service_topic" value="/tactical_problem_interface/problem_generation_server" />
+		<param name="problem_service_topic_params"  value="/tactical_problem_interface/problem_generation_server_params" />
+		<param name="planning_service_topic" value="/tactical_planner_interface/planning_server" />
+		<param name="planning_service_topic_params" value="/tactical_planner_interface/planning_server_params" />
+		<param name="parsing_service_topic" value="/tactical_parsing_interface/parse_plan" />
+		<param name="dispatch_service_topic" value="/tactical_plan_dispatch/dispatch_plan" />
+	</node>
+	<node name="rosplan_interface_tactical_control_tc_1" pkg="rosplan_interface_strategic" type="rptacticalcontrol" respawn="false" output="screen">
+
+		<!-- action server -->
+		<param name="knowledge_base" value="rosplan_knowledge_base" />
+		<param name="pddl_action_name" value="complete_mission_tc_1" />
+		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />
+		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />
+
+		<!-- tactical planning interfaces -->
+		<param name="cancel_service_topic" value="/tactical_plan_dispatcher/cancel_dispatch" />
+		<param name="problem_service_topic" value="/tactical_problem_interface/problem_generation_server" />
+		<param name="problem_service_topic_params"  value="/tactical_problem_interface/problem_generation_server_params" />
+		<param name="planning_service_topic" value="/tactical_planner_interface/planning_server" />
+		<param name="planning_service_topic_params" value="/tactical_planner_interface/planning_server_params" />
+		<param name="parsing_service_topic" value="/tactical_parsing_interface/parse_plan" />
+		<param name="dispatch_service_topic" value="/tactical_plan_dispatch/dispatch_plan" />
+	</node>
+	<node name="rosplan_interface_tactical_control_sm_a_1" pkg="rosplan_interface_strategic" type="rptacticalcontrol" respawn="false" output="screen">
+
+		<!-- action server -->
+		<param name="knowledge_base" value="rosplan_knowledge_base" />
+		<param name="pddl_action_name" value="complete_mission_sm_a_1" />
+		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />
+		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />
+
+		<!-- tactical planning interfaces -->
+		<param name="cancel_service_topic" value="/tactical_plan_dispatcher/cancel_dispatch" />
+		<param name="problem_service_topic" value="/tactical_problem_interface/problem_generation_server" />
+		<param name="problem_service_topic_params"  value="/tactical_problem_interface/problem_generation_server_params" />
+		<param name="planning_service_topic" value="/tactical_planner_interface/planning_server" />
+		<param name="planning_service_topic_params" value="/tactical_planner_interface/planning_server_params" />
+		<param name="parsing_service_topic" value="/tactical_parsing_interface/parse_plan" />
+		<param name="dispatch_service_topic" value="/tactical_plan_dispatch/dispatch_plan" />
+	</node>
+	<node name="rosplan_interface_tactical_control_sm_b_1" pkg="rosplan_interface_strategic" type="rptacticalcontrol" respawn="false" output="screen">
+
+		<!-- action server -->
+		<param name="knowledge_base" value="rosplan_knowledge_base" />
+		<param name="pddl_action_name" value="complete_mission_sm_b_1" />
+		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />
+		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />
+
+		<!-- tactical planning interfaces -->
+		<param name="cancel_service_topic" value="/tactical_plan_dispatcher/cancel_dispatch" />
+		<param name="problem_service_topic" value="/tactical_problem_interface/problem_generation_server" />
+		<param name="problem_service_topic_params"  value="/tactical_problem_interface/problem_generation_server_params" />
+		<param name="planning_service_topic" value="/tactical_planner_interface/planning_server" />
+		<param name="planning_service_topic_params" value="/tactical_planner_interface/planning_server_params" />
+		<param name="parsing_service_topic" value="/tactical_parsing_interface/parse_plan" />
+		<param name="dispatch_service_topic" value="/tactical_plan_dispatch/dispatch_plan" />
+	</node>
+	<node name="rosplan_interface_tactical_control_im_a_2" pkg="rosplan_interface_strategic" type="rptacticalcontrol" respawn="false" output="screen">
+
+		<!-- action server -->
+		<param name="knowledge_base" value="rosplan_knowledge_base" />
+		<param name="pddl_action_name" value="complete_mission_im_a_2" />
+		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />
+		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />
+
+		<!-- tactical planning interfaces -->
+		<param name="cancel_service_topic" value="/tactical_plan_dispatcher/cancel_dispatch" />
+		<param name="problem_service_topic" value="/tactical_problem_interface/problem_generation_server" />
+		<param name="problem_service_topic_params"  value="/tactical_problem_interface/problem_generation_server_params" />
+		<param name="planning_service_topic" value="/tactical_planner_interface/planning_server" />
+		<param name="planning_service_topic_params" value="/tactical_planner_interface/planning_server_params" />
+		<param name="parsing_service_topic" value="/tactical_parsing_interface/parse_plan" />
+		<param name="dispatch_service_topic" value="/tactical_plan_dispatch/dispatch_plan" />
+	</node>
+	<node name="rosplan_interface_tactical_control_im_b_2" pkg="rosplan_interface_strategic" type="rptacticalcontrol" respawn="false" output="screen">
+
+		<!-- action server -->
+		<param name="knowledge_base" value="rosplan_knowledge_base" />
+		<param name="pddl_action_name" value="complete_mission_im_b_2" />
+		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />
+		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />
+
+		<!-- tactical planning interfaces -->
+		<param name="cancel_service_topic" value="/tactical_plan_dispatcher/cancel_dispatch" />
+		<param name="problem_service_topic" value="/tactical_problem_interface/problem_generation_server" />
+		<param name="problem_service_topic_params"  value="/tactical_problem_interface/problem_generation_server_params" />
+		<param name="planning_service_topic" value="/tactical_planner_interface/planning_server" />
+		<param name="planning_service_topic_params" value="/tactical_planner_interface/planning_server_params" />
+		<param name="parsing_service_topic" value="/tactical_parsing_interface/parse_plan" />
+		<param name="dispatch_service_topic" value="/tactical_plan_dispatch/dispatch_plan" />
+	</node>
+	<node name="rosplan_interface_tactical_control_im_c_2" pkg="rosplan_interface_strategic" type="rptacticalcontrol" respawn="false" output="screen">
+
+		<!-- action server -->
+		<param name="knowledge_base" value="rosplan_knowledge_base" />
+		<param name="pddl_action_name" value="complete_mission_im_c_2" />
 		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />
 		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />
 
@@ -64,7 +181,7 @@
 		<arg name="domain_path"          value="$(arg domain_strategic)" />
 		<arg name="problem_path"         value="$(find rosplan_interface_strategic)/common/problem_strategic.pddl" />
 		<arg name="data_path"            value="$(find rosplan_interface_strategic)/common/strategic" />
-		<arg name="planner_command"      value="timeout 20 $(find rosplan_planning_system)/common/bin/optic-cplex DOMAIN PROBLEM" />
+		<arg name="planner_command"      value="timeout 20 $(find rosplan_planning_system)/common/bin/optic-cplex -N DOMAIN PROBLEM" />
 	</include>
 
 	<!-- tactical planner interface -->
@@ -76,12 +193,13 @@
 		<arg name="domain_path"          value="$(arg domain_tactical)" />
 		<arg name="problem_path"         value="$(find rosplan_interface_strategic)/common/problem_tactical.pddl" />
 		<arg name="data_path"            value="$(find rosplan_interface_strategic)/common/tactical" />
-		<arg name="planner_command"      value="timeout 20 $(find rosplan_planning_system)/common/bin/optic-cplex DOMAIN PROBLEM" />
+		<arg name="planner_command"      value="timeout 10 $(find rosplan_planning_system)/common/bin/optic-cplex -N DOMAIN PROBLEM" />
 	</include>
 
 	<!-- strategic problem generation -->
 	<include file="$(find rosplan_planning_system)/launch/includes/problem_interface.launch">
 		<arg name="node_name"        value="strategic_problem_interface" />
+		<arg name="knowledge_base"   value="rosplan_knowledge_base_strategic" />
 		<arg name="domain_path"      value="$(arg domain_strategic)" />
 		<arg name="problem_path"     value="$(find rosplan_interface_strategic)/common/problem_strategic.pddl" />
 		<arg name="problem_topic"    value="problem_instance" />
@@ -90,6 +208,7 @@
 	<!-- tactical problem generation -->
 	<include file="$(find rosplan_planning_system)/launch/includes/problem_interface.launch">
 		<arg name="node_name"        value="tactical_problem_interface" />
+		<arg name="knowledge_base"   value="rosplan_knowledge_base_tactical" />
 		<arg name="domain_path"      value="$(arg domain_tactical)" />
 		<arg name="problem_path"     value="$(find rosplan_interface_strategic)/common/problem_tactical.pddl" />
 		<arg name="problem_topic"    value="problem_instance" />
@@ -156,43 +275,6 @@
 		<arg name="action_dispatch_topic" value="/tactical_plan_dispatch/action_dispatch" />
 		<arg name="action_feedback_topic" value="/tactical_plan_dispatch/action_feedback" />
 	</include>
-	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
-		<arg name="action_duration"	value="-1.0" />
-		<arg name="pddl_action_name" value="complete_mission_tc_1" />
-		<arg name="action_dispatch_topic" value="/tactical_plan_dispatch/action_dispatch" />
-		<arg name="action_feedback_topic" value="/tactical_plan_dispatch/action_feedback" />
-	</include>
-	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
-		<arg name="action_duration"	value="-1.0" />
-		<arg name="pddl_action_name" value="complete_mission_sm_a_1" />
-		<arg name="action_dispatch_topic" value="/tactical_plan_dispatch/action_dispatch" />
-		<arg name="action_feedback_topic" value="/tactical_plan_dispatch/action_feedback" />
-	</include>
-	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
-		<arg name="action_duration"	value="-1.0" />
-		<arg name="pddl_action_name" value="complete_mission_sm_b_1" />
-		<arg name="action_dispatch_topic" value="/tactical_plan_dispatch/action_dispatch" />
-		<arg name="action_feedback_topic" value="/tactical_plan_dispatch/action_feedback" />
-	</include>
-	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
-		<arg name="action_duration"	value="-1.0" />
-		<arg name="pddl_action_name" value="complete_mission_im_a_2" />
-		<arg name="action_dispatch_topic" value="/tactical_plan_dispatch/action_dispatch" />
-		<arg name="action_feedback_topic" value="/tactical_plan_dispatch/action_feedback" />
-	</include>
-	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
-		<arg name="action_duration"	value="-1.0" />
-		<arg name="pddl_action_name" value="complete_mission_im_b_2" />
-		<arg name="action_dispatch_topic" value="/tactical_plan_dispatch/action_dispatch" />
-		<arg name="action_feedback_topic" value="/tactical_plan_dispatch/action_feedback" />
-	</include>
-	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
-		<arg name="action_duration"	value="-1.0" />
-		<arg name="pddl_action_name" value="complete_mission_im_c_2" />
-		<arg name="action_dispatch_topic" value="/tactical_plan_dispatch/action_dispatch" />
-		<arg name="action_feedback_topic" value="/tactical_plan_dispatch/action_feedback" />
-	</include>
-
 
 <!--	tatical-->
 	<include file="$(find rosplan_planning_system)/launch/includes/simulated_action.launch" >
@@ -244,18 +326,4 @@
 		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />
 		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />
 	</node>
-<!--	<node name="rosplan_interface_strategic_localise" pkg="rosplan_planning_system" type="simulatedAction" respawn="false" output="screen">-->
-<!--		<param name="action_duration"	value="-1.0" />-->
-<!--		<param name="knowledge_base" value="rosplan_knowledge_base" />-->
-<!--		<param name="pddl_action_name" value="localise" />-->
-<!--		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />-->
-<!--		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />-->
-<!--	</node>-->
-<!--	<node name="rosplan_interface_strategic_goto_waypoint" pkg="rosplan_planning_system" type="simulatedAction" respawn="false" output="screen">-->
-<!--		<param name="action_duration"	value="-1.0" />-->
-<!--		<param name="knowledge_base" value="rosplan_knowledge_base" />-->
-<!--		<param name="pddl_action_name" value="goto_waypoint" />-->
-<!--		<param name="action_dispatch_topic" value="/strategic_plan_dispatch/action_dispatch" />-->
-<!--		<param name="action_feedback_topic" value="/strategic_plan_dispatch/action_feedback" />-->
-<!--	</node>-->
 </launch>

@@ -14,6 +14,8 @@
 #include "rosplan_dispatch_msgs/DispatchService.h"
 #include "rosplan_dispatch_msgs/ProblemService.h"
 
+#include "rosplan_knowledge_msgs/ImportStateFromFileService.h"
+
 #include "std_msgs/String.h"
 #include "std_srvs/Empty.h"
 
@@ -42,10 +44,15 @@ namespace KCL_rosplan {
 
         ros::ServiceClient problem_client_params;
 
+        ros::ServiceClient import_state_client;
+
         ros::ServiceClient local_update_knowledge_client;
 
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> mission_goals;
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> old_goals;
+
+
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem> tactical_goals;
 
     public:
 
@@ -54,8 +61,9 @@ namespace KCL_rosplan {
 
         /* listen to and process action_dispatch topic */
         bool concreteCallback(const rosplan_dispatch_msgs::ActionDispatch::ConstPtr& msg);
-        bool initGoals(const std::string &mission);
-        void restoreGoals();
+        bool initState(const std::string &mission, const std::string &mission_type, const std::pair<std::string,std::string> &drones);
+
+//        void restoreGoals();
     };
 }
 #endif
