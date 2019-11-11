@@ -822,18 +822,15 @@ namespace KCL_rosplan {
         updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
         updateSrv.request.knowledge.knowledge_type = 0;
 
-
-        for(int i = 0; i < component_instances.size(); ++i) {
-            updateSrv.request.knowledge.instance_type = "component";
-
-            if (mission_type.compare("strategic") == 0) {
-
-                for (int i = 0; i < 21; i++){
-                    updateSrv.request.knowledge.instance_name= getMissionTacticalLocation(i+1);
-                    update_strategic_knowledge_client.call(updateSrv);
-                }
+        if (mission_type.compare("strategic") == 0) {
+            for (int i = 0; i < 21; i++){
+                updateSrv.request.knowledge.instance_type = "component";
+                updateSrv.request.knowledge.instance_name= getMissionTacticalLocation(i+1);
+                update_strategic_knowledge_client.call(updateSrv);
             }
-            else{
+        }else{
+            for(int i = 0; i < component_instances.size(); ++i) {
+                updateSrv.request.knowledge.instance_type = "component";
                 std::stringstream station_ss1;
                 station_ss1 << "s" << (mission_site-1)*3+1 << "-";
                 std::stringstream station_ss2;
@@ -849,10 +846,9 @@ namespace KCL_rosplan {
                     updateSrv.request.knowledge.instance_name = component_instances[i];
                     update_tactical_knowledge_client.call(updateSrv);
                 }
+
             }
-
         }
-
 
         for(int i = 0; i < drone_instances.size(); ++i) {
             updateSrv.request.knowledge.instance_type = "drone";
@@ -1059,7 +1055,6 @@ namespace KCL_rosplan {
 
         storeInitialState();
 
-        std_srvs::Empty empty;
         clear_tactical_knowledge_client.call(empty);
 
 

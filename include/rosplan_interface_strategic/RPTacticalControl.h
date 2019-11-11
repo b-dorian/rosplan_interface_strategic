@@ -9,6 +9,7 @@
 #include "rosplan_knowledge_msgs/KnowledgeItem.h"
 #include "rosplan_knowledge_msgs/KnowledgeUpdateService.h"
 #include "rosplan_knowledge_msgs/GetAttributeService.h"
+#include "rosplan_knowledge_msgs/GetInstanceService.h"
 #include "rosplan_dispatch_msgs/ActionDispatch.h"
 #include "rosplan_dispatch_msgs/ActionFeedback.h"
 #include "rosplan_dispatch_msgs/DispatchService.h"
@@ -34,25 +35,41 @@ namespace KCL_rosplan {
 
     private:
 
-        ros::ServiceClient current_goals_client;
-        ros::ServiceClient mission_goals_client;
         ros::ServiceClient cancel_client;
         ros::ServiceClient problem_client;
         ros::ServiceClient planning_client;
         ros::ServiceClient parsing_client;
         ros::ServiceClient dispatch_client;
 
-        ros::ServiceClient problem_client_params;
-
+        //tactical kb clients
+        ros::ServiceClient clear_tactical_knowledge_client;
         ros::ServiceClient import_state_client;
+        ros::ServiceClient update_tactical_knowledge_client;
+        ros::ServiceClient mission_goals_client;
+        ros::ServiceClient mission_propositions_client;
+        ros::ServiceClient mission_functions_client;
 
-        ros::ServiceClient local_update_knowledge_client;
+        //execution (runtime) kb clients
+        ros::ServiceClient current_propositions_client;
+        ros::ServiceClient current_functions_client;
+        ros::ServiceClient current_instances_client;
+        ros::ServiceClient current_tils_client;
 
+        //execution (runtime)
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem> propositions;
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem> functions;
+        std::vector<std::string> drone_instances;
+        std::vector<std::string> component_instances;
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem> timed_knowledge;
+
+        //tactical
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> mission_goals;
-        std::vector<rosplan_knowledge_msgs::KnowledgeItem> old_goals;
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem> mission_propositions;
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem> mission_functions;
 
 
-        std::vector<rosplan_knowledge_msgs::KnowledgeItem> tactical_goals;
+        rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
+        std_srvs::Empty empty;
 
     public:
 
@@ -60,6 +77,7 @@ namespace KCL_rosplan {
         RPTacticalControl(ros::NodeHandle &nh);
 
         /* listen to and process action_dispatch topic */
+        void storeCurrentState();
         bool concreteCallback(const rosplan_dispatch_msgs::ActionDispatch::ConstPtr& msg);
         bool initState(const std::string &mission, const std::string &mission_type, const std::pair<std::string,std::string> &drones);
 

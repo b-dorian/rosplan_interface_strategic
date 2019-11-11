@@ -34,6 +34,8 @@ namespace KCL_rosplan {
 
 		ros::NodeHandle* node_handle;
 
+        std_srvs::Empty empty;
+
 		/* rosplan knowledge interface */
 		ros::ServiceClient update_tactical_knowledge_client;
         ros::ServiceClient update_strategic_knowledge_client;
