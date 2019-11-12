@@ -62,24 +62,6 @@ namespace KCL_rosplan {
         rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
 
 
-        struct drone{
-            int config;
-            int velocity;
-            double charge;
-            double max_charge;
-            bool camera;
-            bool thermal_camera;
-            bool signal_measurer;
-            std::string is_at;
-            std::string is_at_component;
-        };
-
-        std::vector<drone> drones;
-
-        struct type{
-
-        };
-
         struct mission_details{
             bool deny_goal;
             std::vector<rosplan_knowledge_msgs::KnowledgeItem> goals;
@@ -93,7 +75,6 @@ namespace KCL_rosplan {
             std::vector<std::string> types;
             std::vector<double> durations;
             std::map<std::string,std::vector<rosplan_knowledge_msgs::KnowledgeItem> > type_goals;
-            std::map<std::string,drone> type_drones;
 
         };
         
@@ -120,7 +101,6 @@ namespace KCL_rosplan {
         std::string getMissionTacticalLocation(int);
         void createMissions();
         void storeInitialState();
-        //void clearInitialState();
         void addDronesOffline(std::string, std::string, std::string);
         void addInstances(std::string, int);
 

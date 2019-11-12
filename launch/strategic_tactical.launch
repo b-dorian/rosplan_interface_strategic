@@ -26,7 +26,7 @@
 	</node>
 	<node name="rosplan_knowledge_base_strategic" pkg="rosplan_knowledge_base" type="knowledgeBase" respawn="false" output="screen">
 		<param name="domain_path" value="$(arg domain_all)" />
-		<param name="problem_path" value="$(arg problem_normal)" />
+		<param name="problem_path" value="$(find rosplan_interface_strategic)/common/problem_strategic.pddl" />
 		<param name="database_path" value="$(find rosplan_interface_strategic)/common/mongoDB/" />
 		<!-- conditional planning flags -->
 		<param name="use_unknowns" value="false" />

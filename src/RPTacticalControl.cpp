@@ -43,32 +43,6 @@ namespace KCL_rosplan {
 
 	}
 
-//	/**
-//	 * remove mission goals from KB and restore saved goals
-//	 */
-//	void RPTacticalControl::restoreGoals() {
-//
-//		// remove mission goal from KB
-//		rosplan_knowledge_msgs::KnowledgeUpdateService updateGoalSrv;
-//		updateGoalSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
-//		for(int i = 0; i<mission_goals.size(); i++) {
-//			updateGoalSrv.request.knowledge = mission_goals[i];
-//			if(!local_update_knowledge_client.call(updateGoalSrv)) {
-//				ROS_INFO("KCL: (%s) failed to update PDDL goal.", ros::this_node::getName().c_str());
-//			}
-//		}
-//
-//		// add old goal to knowledge base
-//		updateGoalSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-//		updateGoalSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-//		for(int i = 0; i<old_goals.size(); i++) {
-//			updateGoalSrv.request.knowledge = old_goals[i];
-//			if(!local_update_knowledge_client.call(updateGoalSrv)) {
-//				ROS_INFO("KCL: (%s) failed to update PDDL goal.", ros::this_node::getName().c_str());
-//			}
-//		}
-//	}
-
     // retrieve and store initial state information
     void RPTacticalControl::storeCurrentState(){
 
@@ -154,7 +128,7 @@ namespace KCL_rosplan {
         for (; pit != propositions.end(); pit++) {
             std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mission_goals.begin();
             for (; git != mission_goals.end(); git++) {
-                if(((pit->attribute_name.compare("know") == 0) || (pit->attribute_name.compare("know-simultaneous") == 0)) && (pit->attribute_name.compare(git->attribute_name) == 0)){
+                if(((pit->attribute_name.compare("know") == 0) || (pit->attribute_name.compare("know-simultaneous") == 0)) && (pit->values[0].value.compare(git->values[0].value) == 0)){
                     updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
                     updateSrv.request.knowledge = *pit;
                     update_tactical_knowledge_client.call(updateSrv);
@@ -217,57 +191,6 @@ namespace KCL_rosplan {
             }
         }
 
-
-
-
-//        rosplan_knowledge_msgs::GetAttributeService gsrv;
-//        gsrv.request.predicate_name = mission;
-//        if(!mission_goals_client.call(gsrv)) {
-//            ROS_ERROR("KCL: (%s) Failed to call Knowledge Base for goals.", ros::this_node::getName().c_str());
-//            return false;
-//        } else {
-//            mission_goals = gsrv.response.attributes;
-//        }
-
-
-
-//		gsrv.request.predicate_name = mission;
-//		if(!mission_goals_client.call(gsrv)) {
-//			ROS_ERROR("KCL: (%s) Failed to call Knowledge Base for goals.", ros::this_node::getName().c_str());
-//			return false;
-//		} else {
-//			mission_goals = gsrv.response.attributes;
-//		}
-//
-//		// fetch and store old goals
-//		rosplan_knowledge_msgs::GetAttributeService currentGoalSrv;
-//		if (!current_goals_client.call(currentGoalSrv)) {
-//			ROS_ERROR("KCL: (%s) Failed to call Knowledge Base for goals.", ros::this_node::getName().c_str());
-//			return false;
-//		} else {
-//			old_goals = currentGoalSrv.response.attributes;
-//		}
-//
-//		// clear old goals
-//		rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
-//		updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_GOAL;
-//		updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-//		updateSrv.request.knowledge.attribute_name = "";
-//		updateSrv.request.knowledge.values.clear();
-//        update_tactical_knowledge_client.call(updateSrv);
-//
-//		// add mission goal to knowledge base
-//		rosplan_knowledge_msgs::KnowledgeUpdateService updateGoalSrv;
-//		updateGoalSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-//		updateGoalSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::FACT;
-//		for(int i = 0; i<mission_goals.size(); i++) {
-//			updateGoalSrv.request.knowledge = mission_goals[i];
-//			if(!update_tactical_knowledge_client.call(updateGoalSrv)) {
-//				ROS_INFO("KCL: (%s) failed to update PDDL goal.", ros::this_node::getName().c_str());
-//				//restoreGoals();
-//				return false;
-//			}
-//		}
 		return true;
 	}
 
@@ -347,11 +270,9 @@ namespace KCL_rosplan {
 			// dispatch tactical plan
 			bool dispatch_success = dispatch_client.call(dispatch);
 
-//			restoreGoals();
 			return dispatch_success;
 		}
 
-//		restoreGoals();
 		return false;
 	}
 } // close namespace

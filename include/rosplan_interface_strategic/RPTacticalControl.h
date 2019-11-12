@@ -81,7 +81,6 @@ namespace KCL_rosplan {
         bool concreteCallback(const rosplan_dispatch_msgs::ActionDispatch::ConstPtr& msg);
         bool initState(const std::string &mission, const std::string &mission_type, const std::pair<std::string,std::string> &drones);
 
-//        void restoreGoals();
     };
 }
 #endif

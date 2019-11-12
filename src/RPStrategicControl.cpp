@@ -1187,20 +1187,8 @@ namespace KCL_rosplan {
                     //problem that this will overshoot time of plan now - however, could be fine as we should do upper estimate
                     double time = nit->action.dispatch_time + nit->action.duration;
                     if(time > max_time) max_time = time;
-                    //get the only first non move or undock action
-//                    if(start_locations.size() <= mission_durations.size() && !(nit->action.name == "goto_waypoint" || nit->action.name == "undock" || nit->action.name == "localise")){
-//                      //loop through parameters of that action
-//                      for(std::vector<diagnostic_msgs::KeyValue>::iterator i = nit->action.parameters.begin(); i != nit->action.parameters.end(); ++i){
-//                        if(i->key == "wp"){
-//                          //first one that is a waypoint parameter is where the mission has to start (at_mission)
-//                          start_locations.push_back(*i);
-//                        }
-//                      }
-//                    }
                 }
                 mit->second.durations.push_back(max_time);
-//                usleep(50000000);
-
                 clear_tactical_knowledge_client.call(empty);
             }
 
@@ -1413,42 +1401,8 @@ namespace KCL_rosplan {
 
             }
         }
-
-
-//        std::string strategic = "strategic";
-//        // generate problem and plan from the initial problem file state and 1 added goal
-//        ROS_INFO("KCL: (%s) Generating strategic problem for %s.", ros::this_node::getName().c_str(), strategic.c_str());
-//        new_plan_recieved = false;
-//
-//        std_srvs::Empty empty;
-//        problem_client.call(empty);
-//        ros::Duration(1).sleep(); // sleep for a second
-//        planning_client.call(empty);
-//        ros::Duration(1).sleep(); // sleep for a second
-//        parsing_client.call(empty);
-//        ros::Duration(1).sleep(); // sleep for a second
-//
-//        while(!new_plan_recieved && ros::ok()) ros::spinOnce();
-
-
-
     }
-//
-//  // method for getting location endpoints
-//  diagnostic_msgs::KeyValue RPStrategicControl::getEndPoint(std::vector<rosplan_dispatch_msgs::EsterelPlanNode> & nodes) const{
-//    std::vector<rosplan_dispatch_msgs::EsterelPlanNode>::reverse_iterator nrit = nodes.rbegin();
-//    for(; nrit != nodes.rend(); ++nrit){
-//      if(!(nrit->action.name == "goto_waypoint" || nrit->action.name == "dock")){
-//        for(std::vector<diagnostic_msgs::KeyValue>::iterator i = nrit->action.parameters.begin(); i != nrit->action.parameters.end(); ++i){
-//          if(i->key == "wp"){
-//            return *i;
-//          }
-//        }
-//      }
-//    }
-//    return nodes[nodes.size() - 1].action.parameters[0];
-//  }
-//
+
 //  //going to change when I have the updated edge durations
     int RPStrategicControl::getMinTime(rosplan_dispatch_msgs::EsterelPlan& plan) const{
         //create graph layout to help with the algorithm - max 10000 so that non connected edges wont be taken into account
