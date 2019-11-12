@@ -21,14 +21,12 @@ namespace KCL_rosplan {
         current_tils_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/timed_knowledge");
 
 		// planning interface
-//		std::string goalTopic = "/rosplan_interface_strategic_control/get_mission_goals";
 		std::string cancTopic = "/rosplan_plan_dispatcher/cancel_dispatch";
 		std::string probTopic = "/rosplan_problem_interface/problem_generation_server";
 		std::string planTopic = "/rosplan_planner_interface/planning_server";
 		std::string parsTopic = "/rosplan_parsing_interface/parse_plan";
 		std::string dispTopic = "/rosplan_plan_dispatch/dispatch_plan";
 
-//		nh.getParam("mission_goals_topic", goalTopic);
 		nh.getParam("cancel_service_topic", cancTopic);
 		nh.getParam("problem_service_topic", probTopic);
 		nh.getParam("planning_service_topic", planTopic);
@@ -36,7 +34,6 @@ namespace KCL_rosplan {
 		nh.getParam("dispatch_service_topic", dispTopic);
         nh.getParam("dispatch_service_topic", dispTopic);
 
-//		mission_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>(goalTopic);
 		cancel_client = nh.serviceClient<std_srvs::Empty>(cancTopic);
 		problem_client = nh.serviceClient<std_srvs::Empty>(probTopic);
 		planning_client = nh.serviceClient<std_srvs::Empty>(planTopic);
@@ -157,7 +154,7 @@ namespace KCL_rosplan {
         for (; pit != propositions.end(); pit++) {
             std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mission_goals.begin();
             for (; git != mission_goals.end(); git++) {
-                if(pit->attribute_name.compare(git->attribute_name) == 0){
+                if(((pit->attribute_name.compare("know") == 0) || (pit->attribute_name.compare("know-simultaneous") == 0)) && (pit->attribute_name.compare(git->attribute_name) == 0)){
                     updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
                     updateSrv.request.knowledge = *pit;
                     update_tactical_knowledge_client.call(updateSrv);
@@ -165,46 +162,12 @@ namespace KCL_rosplan {
             }
         }
 
-        //remove duplicate instances
-        // configuration inspection perspective capability knowledges drone(think drone removes all other)
+		//remove drone instance
+        updateSrv.request.knowledge.instance_type = "drone";
+        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::INSTANCE;
+        update_tactical_knowledge_client.call(updateSrv);
 
-		//remove drone propositions
-		rosplan_knowledge_msgs::GetAttributeService missionPropositionsSrv;
-        if (!mission_propositions_client.call(missionPropositionsSrv)) {
-            ROS_ERROR("KCL: (%s) Failed to call goals service.", ros::this_node::getName().c_str());
-            return false;
-        } else {
-            mission_propositions = missionPropositionsSrv.response.attributes;
-        }
-        pit = mission_propositions.begin();
-        for (; pit != mission_propositions.end(); pit++) {
-            for(int i = 0; i < pit->values.size(); ++i ){
-                if(pit->values[i].key.compare("drone") == 0){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-                    updateSrv.request.knowledge = *pit;
-                    update_tactical_knowledge_client.call(updateSrv);
-                }
-            }
-        }
-
-        //remove drone functions
-        rosplan_knowledge_msgs::GetAttributeService missionFunctionsSrv;
-        if (!mission_functions_client.call(missionFunctionsSrv)) {
-            ROS_ERROR("KCL: (%s) Failed to call goals service.", ros::this_node::getName().c_str());
-            return false;
-        } else {
-            mission_functions = missionFunctionsSrv.response.attributes;
-        }
-        std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = mission_functions.begin();
-        for (; fit != mission_functions.end(); fit++) {
-            for(int i = 0; i < fit->values.size(); ++i ){
-                if(fit->values[i].key.compare("drone") == 0){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-                    updateSrv.request.knowledge = *fit;
-                    update_tactical_knowledge_client.call(updateSrv);
-                }
-            }
-        }
 
         // add relevant drone instances and propositions from executionKB to tacticalKB
         pit = propositions.begin();
@@ -220,6 +183,7 @@ namespace KCL_rosplan {
                     updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
                     updateSrv.request.knowledge = *pit;
                     update_tactical_knowledge_client.call(updateSrv);
+
                 }
                 if((pit->values[i].key.compare("drone") == 0) && (pit->values[i].value.compare(drones.second) == 0)){
                     updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
@@ -236,6 +200,7 @@ namespace KCL_rosplan {
         }
 
         // add relevant drone functions
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = mission_functions.begin();
         fit = functions.begin();
         for (; fit != functions.end(); fit++) {
             for(int i = 0; i < fit->values.size(); ++i ){

@@ -7,6 +7,7 @@
 	<arg name="domain_all"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-domain-all.pddl" />
 	<arg name="problem_normal"	default="$(find rosplan_interface_strategic)/common/droneacharya/droneacharya-problem-21base.pddl" />
 <!--	<arg name="problem_normal"	default="$(find rosplan_interface_strategic)/common/problem_strategic_init.pddl" />-->
+<!--	<arg name="problem_normal"	default="/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical/problem_station-1-image_cm-1.pddl-->
 
 	<!-- scene database (MongoDB) -->
 	<include file="$(find mongodb_store)/launch/mongodb_store.launch">

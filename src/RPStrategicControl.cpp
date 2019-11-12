@@ -79,6 +79,8 @@ namespace KCL_rosplan {
         }
     }
 
+    // delete instances created automatically created by constants
+    //void deleteInstances()
 
 
     std::pair<int,int> RPStrategicControl::getSites(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator it){
