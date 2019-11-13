@@ -71,9 +71,72 @@ namespace KCL_rosplan {
     /*----------*/
 
     /**
-     * disable a random drone's sensor(s) or motor
+     * disable random drone(s)
+     * to add: disable one sensor, several sensors, or motor
      */
-    bool RPStrategicControl::disableRandomDrone(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+    bool RPStrategicControl::disableRandomDrones(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+
+        if(disabledDrones.size() < 12) {
+
+            double sysTime = time(0);
+            std::random_device rd;
+            std::mt19937 eng(rd());
+            std::uniform_int_distribution<> distrNoOfDrones(1, 3);
+            int nrOfDrones = distrNoOfDrones(eng);
+
+            //check if number of drones is valid
+            while (nrOfDrones + disabledDrones.size() > 12){
+                nrOfDrones = distrNoOfDrones(eng);
+            }
+
+            //check if drone is already disabled and if the called number of disabled drones has been reached
+            std::vector<int> tempDisabledDrones;
+            std::vector<int> disabledDronesStartTime;
+            do {
+                std::uniform_int_distribution<> distrDrone(1, 12);
+                std::uniform_int_distribution<> distrTIL(1, 3000);
+                int drone = distrDrone(eng);
+                bool addDrone = true;
+                for (int j = 0; j < disabledDrones.size(); j++) {
+                    if (drone == disabledDrones[j])addDrone = false;
+                }
+                if (addDrone) {
+                    tempDisabledDrones.push_back(drone);
+                    disabledDrones.push_back(drone);
+                } else continue;
+
+                int randomTime = distrTIL(eng);
+                disabledDronesStartTime.push_back(randomTime);
+                double startTime = sysTime + randomTime;
+
+                item.knowledge_type = 1;
+                item.initial_time.sec = startTime;
+                item.initial_time.nsec = 0;
+                item.function_value = 0;
+                item.is_negative = true;
+                item.attribute_name = "velocity";
+                diagnostic_msgs::KeyValue param;
+                std::stringstream ss;
+                ss << "drone" << drone;
+                param.key = "drone";
+                param.value = ss.str();
+                item.values.push_back(param);
+                updateSrvArray.request.update_type.push_back(0);
+                updateSrvArray.request.knowledge.push_back(item);
+
+                item.values.clear();
+
+            } while (tempDisabledDrones.size() < nrOfDrones);
+
+            // add drones
+            update_array_knowledge_client.call(updateSrvArray);
+            updateSrvArray.request.update_type.clear();
+            updateSrvArray.request.knowledge.clear();
+            for (int i = 0; i < tempDisabledDrones.size(); i++) {
+                ROS_INFO("KCL: (%s) !!! Drone %i will have an engine failure at %i seconds !!!",
+                         ros::this_node::getName().c_str(), tempDisabledDrones[i], disabledDronesStartTime[i]);
+            }
+        }
 
     }
 
@@ -85,11 +148,11 @@ namespace KCL_rosplan {
         double sysTime = time(0);
         std::random_device rd;
         std::mt19937 eng(rd());
-        std::uniform_int_distribution<> distrStation(0, 21);
+        std::uniform_int_distribution<> distrStation(1, 21);
         std::uniform_int_distribution<> distrTIL(1800, 2100);
         int station = distrStation(eng);
-        std::cout << station << " good till here\n";
-        double startTime = sysTime + distrTIL(eng);
+        int randomTime = distrTIL(eng);
+        double startTime = sysTime + randomTime;
         double endTime = startTime + 300;
 
         // all inspection perspectives and components (no launch-pad)
@@ -101,7 +164,6 @@ namespace KCL_rosplan {
                 item.knowledge_type = 1;
                 item.initial_time.sec = startTime;
                 item.initial_time.nsec = 0;
-                item.function_value = 0;
                 item.is_negative = true;
                 item.attribute_name = "is-perspective";
                 diagnostic_msgs::KeyValue param;
@@ -129,6 +191,7 @@ namespace KCL_rosplan {
         update_array_knowledge_client.call(updateSrvArray);
         updateSrvArray.request.update_type.clear();
         updateSrvArray.request.knowledge.clear();
+        ROS_INFO("KCL: (%s) !!! Weather Disturbance will cause a flight ban on station %i between seconds %i - %i !!!", ros::this_node::getName().c_str(),station,randomTime,(randomTime+300));
 
     }
 
@@ -1528,6 +1591,7 @@ int main(int argc, char **argv) {
     // listen
     ros::ServiceServer service1 = nh.advertiseService("decompose_problem", &KCL_rosplan::RPStrategicControl::decomposeProblem, &rpsc);
     ros::ServiceServer service2 = nh.advertiseService("create_weather_disturbance", &KCL_rosplan::RPStrategicControl::createWeatherDisturbance, &rpsc);
+    ros::ServiceServer service3 = nh.advertiseService("disable_random_drones", &KCL_rosplan::RPStrategicControl::disableRandomDrones, &rpsc);
 
     ros::Subscriber lps = nh.subscribe(lps_topic, 100, &KCL_rosplan::RPStrategicControl::planCallback, &rpsc);
 

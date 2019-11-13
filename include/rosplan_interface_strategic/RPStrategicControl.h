@@ -68,6 +68,8 @@ namespace KCL_rosplan {
         rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
         rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateSrvArray;
 
+        std::vector<int> disabledDrones;
+
 
         struct mission_details{
             bool deny_goal;
@@ -125,7 +127,7 @@ namespace KCL_rosplan {
 
 		// create random TILs that will cause plan failure
 		bool createWeatherDisturbance(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
-		bool disableRandomDrone(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+		bool disableRandomDrones(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 	};
 }
 #endif
