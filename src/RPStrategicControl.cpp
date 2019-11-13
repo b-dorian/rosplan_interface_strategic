@@ -149,7 +149,7 @@ namespace KCL_rosplan {
         std::random_device rd;
         std::mt19937 eng(rd());
         std::uniform_int_distribution<> distrStation(1, 21);
-        std::uniform_int_distribution<> distrTIL(1800, 2100);
+        std::uniform_int_distribution<> distrTIL(600, 2300);
         int station = distrStation(eng);
         int randomTime = distrTIL(eng);
         double startTime = sysTime + randomTime;
@@ -168,7 +168,7 @@ namespace KCL_rosplan {
                 item.attribute_name = "is-perspective";
                 diagnostic_msgs::KeyValue param;
                 param.key = "perspective";
-                param.value = perspectives[j];
+                param.value = perspectives[i];
                 item.values.push_back(param);
                 std::stringstream ss;
                 ss << "s" << station << components[j];
@@ -178,7 +178,7 @@ namespace KCL_rosplan {
                 updateSrvArray.request.update_type.push_back(0);
                 updateSrvArray.request.knowledge.push_back(item);
 
-                item.initial_time.sec = startTime;
+                item.initial_time.sec = endTime;
                 item.initial_time.nsec = 0;
                 item.is_negative = false;
                 updateSrvArray.request.update_type.push_back(0);
