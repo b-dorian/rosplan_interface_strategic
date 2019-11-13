@@ -3,13 +3,14 @@
 /* The implementation of RPTacticalControl.h */
 namespace KCL_rosplan {
 
-	/* constructor */
-	RPTacticalControl::RPTacticalControl(ros::NodeHandle &nh) {
+    /* constructor */
+    RPTacticalControl::RPTacticalControl(ros::NodeHandle &nh) {
 
 
 
-		clear_tactical_knowledge_client = nh.serviceClient<std_srvs::Empty>("/rosplan_knowledge_base_tactical/clear");
-		update_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base_tactical/update");
+        clear_tactical_knowledge_client = nh.serviceClient<std_srvs::Empty>("/rosplan_knowledge_base_tactical/clear");
+        update_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base_tactical/update");
+        update_array_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base_tactical/update_array");
         import_state_client = nh.serviceClient<rosplan_knowledge_msgs::ImportStateFromFileService>("/rosplan_knowledge_base_tactical/import_state");
         mission_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base_tactical/state/goals");
         mission_propositions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base_tactical/state/propositions");
@@ -20,28 +21,28 @@ namespace KCL_rosplan {
         current_instances_client = nh.serviceClient<rosplan_knowledge_msgs::GetInstanceService>("/rosplan_knowledge_base/state/instances");
         current_tils_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/timed_knowledge");
 
-		// planning interface
-		std::string cancTopic = "/rosplan_plan_dispatcher/cancel_dispatch";
-		std::string probTopic = "/rosplan_problem_interface/problem_generation_server";
-		std::string planTopic = "/rosplan_planner_interface/planning_server";
-		std::string parsTopic = "/rosplan_parsing_interface/parse_plan";
-		std::string dispTopic = "/rosplan_plan_dispatch/dispatch_plan";
+        // planning interface
+        std::string cancTopic = "/rosplan_plan_dispatcher/cancel_dispatch";
+        std::string probTopic = "/rosplan_problem_interface/problem_generation_server";
+        std::string planTopic = "/rosplan_planner_interface/planning_server";
+        std::string parsTopic = "/rosplan_parsing_interface/parse_plan";
+        std::string dispTopic = "/rosplan_plan_dispatch/dispatch_plan";
 
-		nh.getParam("cancel_service_topic", cancTopic);
-		nh.getParam("problem_service_topic", probTopic);
-		nh.getParam("planning_service_topic", planTopic);
-		nh.getParam("parsing_service_topic", parsTopic);
-		nh.getParam("dispatch_service_topic", dispTopic);
+        nh.getParam("cancel_service_topic", cancTopic);
+        nh.getParam("problem_service_topic", probTopic);
+        nh.getParam("planning_service_topic", planTopic);
+        nh.getParam("parsing_service_topic", parsTopic);
+        nh.getParam("dispatch_service_topic", dispTopic);
         nh.getParam("dispatch_service_topic", dispTopic);
 
-		cancel_client = nh.serviceClient<std_srvs::Empty>(cancTopic);
-		problem_client = nh.serviceClient<std_srvs::Empty>(probTopic);
-		planning_client = nh.serviceClient<std_srvs::Empty>(planTopic);
-		parsing_client = nh.serviceClient<std_srvs::Empty>(parsTopic);
-		dispatch_client = nh.serviceClient<rosplan_dispatch_msgs::DispatchService>(dispTopic);
+        cancel_client = nh.serviceClient<std_srvs::Empty>(cancTopic);
+        problem_client = nh.serviceClient<std_srvs::Empty>(probTopic);
+        planning_client = nh.serviceClient<std_srvs::Empty>(planTopic);
+        parsing_client = nh.serviceClient<std_srvs::Empty>(parsTopic);
+        dispatch_client = nh.serviceClient<rosplan_dispatch_msgs::DispatchService>(dispTopic);
 
 
-	}
+    }
 
     // retrieve and store initial state information
     void RPTacticalControl::storeCurrentState(){
@@ -93,9 +94,9 @@ namespace KCL_rosplan {
 
     }
 
-	/**
-	 * fetch goals for corresponding mission and update KB
-	 */
+    /**
+     * fetch goals for corresponding mission and update KB
+     */
     bool RPTacticalControl::initState(const std::string &mission, const std::string &mission_type, const std::pair<std::string,std::string> &drones) {
 
         clear_tactical_knowledge_client.call(empty);
@@ -103,7 +104,7 @@ namespace KCL_rosplan {
         // fetch execution (runtime) state
         storeCurrentState();
 
-		// import mission state into tactical kb
+        // import mission state into tactical kb
         std::stringstream ss;
         ss << "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical/problem_" << mission << "_" << mission_type << ".pddl";
 
@@ -123,24 +124,25 @@ namespace KCL_rosplan {
             mission_goals = missionGoalsSrv.response.attributes;
         }
 
-		// fetch completed goals from executionKB, compare them to tacticalKB goals, store positives to problem initial state
+        // fetch completed goals from executionKB, compare them to tacticalKB goals, store positives to problem initial state
         std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
         for (; pit != propositions.end(); pit++) {
             std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mission_goals.begin();
             for (; git != mission_goals.end(); git++) {
                 if(((pit->attribute_name.compare("know") == 0) || (pit->attribute_name.compare("know-simultaneous") == 0)) && (pit->values[0].value.compare(git->values[0].value) == 0)){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *pit;
-                    update_tactical_knowledge_client.call(updateSrv);
+
+                    updateSrvArray.request.update_type.push_back(1);
+                    updateSrvArray.request.knowledge.push_back(*pit);
                 }
             }
         }
 
-		//remove drone instance
-        updateSrv.request.knowledge.instance_type = "drone";
+        //remove drone instance
+        item.instance_type = "drone";
         updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-        updateSrv.request.knowledge.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::INSTANCE;
-        update_tactical_knowledge_client.call(updateSrv);
+        item.knowledge_type = rosplan_knowledge_msgs::KnowledgeItem::INSTANCE;
+        updateSrvArray.request.update_type.push_back(2);
+        updateSrvArray.request.knowledge.push_back(item);
 
 
         // add relevant drone instances and propositions from executionKB to tacticalKB
@@ -148,27 +150,27 @@ namespace KCL_rosplan {
         for (; pit != propositions.end(); pit++) {
             for(int i = 0; i < pit->values.size(); ++i ){
                 if((pit->values[i].key.compare("drone") == 0) && (pit->values[i].value.compare(drones.first) == 0)){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge.knowledge_type = 0;
-                    updateSrv.request.knowledge.instance_type = "drone";
-                    updateSrv.request.knowledge.instance_name = drones.first;
-                    update_tactical_knowledge_client.call(updateSrv);
 
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *pit;
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.knowledge_type = 0;
+                    item.instance_type = "drone";
+                    item.instance_name = drones.first;
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
+
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*pit);
 
                 }
                 if((pit->values[i].key.compare("drone") == 0) && (pit->values[i].value.compare(drones.second) == 0)){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge.knowledge_type = 0;
-                    updateSrv.request.knowledge.instance_type = "drone";
-                    updateSrv.request.knowledge.instance_name = drones.second;
-                    update_tactical_knowledge_client.call(updateSrv);
 
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *pit;
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.knowledge_type = 0;
+                    item.instance_type = "drone";
+                    item.instance_name = drones.second;
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
+
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*pit);
                 }
             }
         }
@@ -179,38 +181,39 @@ namespace KCL_rosplan {
         for (; fit != functions.end(); fit++) {
             for(int i = 0; i < fit->values.size(); ++i ){
                 if((fit->values[i].key.compare("drone") == 0) && (fit->values[i].value.compare(drones.first) == 0)){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *fit;
-                    update_tactical_knowledge_client.call(updateSrv);
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*fit);
                 }
                 if((fit->values[i].key.compare("drone") == 0) && (fit->values[i].value.compare(drones.second) == 0)){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *fit;
-                    update_tactical_knowledge_client.call(updateSrv);
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*fit);
                 }
             }
         }
+        update_array_tactical_knowledge_client.call(updateSrvArray);
+        updateSrvArray.request.update_type.clear();
+        updateSrvArray.request.knowledge.clear();
 
-		return true;
-	}
+        return true;
+    }
 
 
-	/* action dispatch callback */
-	bool RPTacticalControl::concreteCallback(const rosplan_dispatch_msgs::ActionDispatch::ConstPtr& msg) {
+    /* action dispatch callback */
+    bool RPTacticalControl::concreteCallback(const rosplan_dispatch_msgs::ActionDispatch::ConstPtr& msg) {
 
-		// get mission ID from action dispatch complete_mission_xx (?mission - mission ?drone1 (and maybe ?drone2) - drone ?station - component)
-		std::string mission;
-		bool found_mission = false;
-		for(size_t i=0; i<msg->parameters.size(); i++) {
-			if(0==msg->parameters[i].key.compare("mission")) {
-				mission = msg->parameters[i].value;
-				found_mission = true;
-			}
-		}
-		if(!found_mission) {
-			ROS_INFO("KCL: (%s) aborting action dispatch; PDDL action missing required parameter ?mission", params.name.c_str());
-			return false;
-		}
+        // get mission ID from action dispatch complete_mission_xx (?mission - mission ?drone1 (and maybe ?drone2) - drone ?station - component)
+        std::string mission;
+        bool found_mission = false;
+        for(size_t i=0; i<msg->parameters.size(); i++) {
+            if(0==msg->parameters[i].key.compare("mission")) {
+                mission = msg->parameters[i].value;
+                found_mission = true;
+            }
+        }
+        if(!found_mission) {
+            ROS_INFO("KCL: (%s) aborting action dispatch; PDDL action missing required parameter ?mission", params.name.c_str());
+            return false;
+        }
 
         // get mission type
         std::string mission_type;
@@ -225,8 +228,8 @@ namespace KCL_rosplan {
 
         // get drone(s) ID from action dispatch complete_mission (?mission - mission ?drone1 (and maybe ?drone2) - drone ?station - component)
         std::pair<std::string,std::string> drones;
-		drones.first = "";
-		drones.second = "";
+        drones.first = "";
+        drones.second = "";
         bool drone_found = false;
         for(size_t i=0; i<msg->parameters.size(); i++) {
             std::size_t drone_t = msg->parameters[i].key.find("drone");
@@ -247,34 +250,34 @@ namespace KCL_rosplan {
         }
 
 
-		if(!initState(mission,mission_type,drones)) return false;
+        if(!initState(mission,mission_type,drones)) return false;
 
 
-		// generate problem and plan
-		ROS_INFO("KCL: (%s) Sending to planning system.", ros::this_node::getName().c_str());
+        // generate problem and plan
+        ROS_INFO("KCL: (%s) Sending to planning system.", ros::this_node::getName().c_str());
 
-		std_srvs::Empty empty;
-		rosplan_dispatch_msgs::DispatchService dispatch;
-		cancel_client.call(empty);
-		ros::Duration(1).sleep(); // sleep for a second
-		problem_client.call(empty);
-		ros::Duration(1).sleep(); // sleep for a second
+        std_srvs::Empty empty;
+        rosplan_dispatch_msgs::DispatchService dispatch;
+        cancel_client.call(empty);
+        ros::Duration(1).sleep(); // sleep for a second
+        problem_client.call(empty);
+        ros::Duration(1).sleep(); // sleep for a second
 
-		// send to planner
-		if(planning_client.call(empty)) {
-			ros::Duration(1).sleep(); // sleep for a second
-			// parse planner output
-			parsing_client.call(empty);
-			ros::Duration(1).sleep(); // sleep for a second
+        // send to planner
+        if(planning_client.call(empty)) {
+            ros::Duration(1).sleep(); // sleep for a second
+            // parse planner output
+            parsing_client.call(empty);
+            ros::Duration(1).sleep(); // sleep for a second
 
-			// dispatch tactical plan
-			bool dispatch_success = dispatch_client.call(dispatch);
+            // dispatch tactical plan
+            bool dispatch_success = dispatch_client.call(dispatch);
 
-			return dispatch_success;
-		}
+            return dispatch_success;
+        }
 
-		return false;
-	}
+        return false;
+    }
 } // close namespace
 
 /*-------------*/
@@ -283,13 +286,13 @@ namespace KCL_rosplan {
 
 int main(int argc, char **argv) {
 
-	ros::init(argc, argv, "rosplan_interface_tactical_control");
-	ros::NodeHandle nh("~");
+    ros::init(argc, argv, "rosplan_interface_tactical_control");
+    ros::NodeHandle nh("~");
 
-	// create PDDL action subscriber
-	KCL_rosplan::RPTacticalControl rptc(nh);
+    // create PDDL action subscriber
+    KCL_rosplan::RPTacticalControl rptc(nh);
 
-	rptc.runActionInterface();
+    rptc.runActionInterface();
 
-	return 0;
+    return 0;
 }

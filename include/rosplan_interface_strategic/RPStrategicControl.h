@@ -6,6 +6,7 @@
 
 #include "rosplan_knowledge_msgs/KnowledgeItem.h"
 #include "rosplan_knowledge_msgs/KnowledgeUpdateService.h"
+#include "rosplan_knowledge_msgs/KnowledgeUpdateServiceArray.h"
 #include "rosplan_knowledge_msgs/GetAttributeService.h"
 #include "rosplan_knowledge_msgs/GetMetricService.h"
 #include "rosplan_knowledge_msgs/GetInstanceService.h"
@@ -39,6 +40,8 @@ namespace KCL_rosplan {
 		/* rosplan knowledge interface */
 		ros::ServiceClient update_tactical_knowledge_client;
         ros::ServiceClient update_strategic_knowledge_client;
+        ros::ServiceClient update_array_tactical_knowledge_client;
+        ros::ServiceClient update_array_strategic_knowledge_client;
         ros::ServiceClient clear_tactical_knowledge_client;
         ros::ServiceClient clear_strategic_knowledge_client;
         ros::ServiceClient current_instances_client;
@@ -59,7 +62,10 @@ namespace KCL_rosplan {
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> timed_knowledge;
         rosplan_knowledge_msgs::KnowledgeItem metric;
 
+
+        rosplan_knowledge_msgs::KnowledgeItem item;
         rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
+        rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateSrvArray;
 
 
         struct mission_details{
@@ -92,8 +98,9 @@ namespace KCL_rosplan {
 
 		rosplan_dispatch_msgs::EsterelPlan last_plan;
 		bool new_plan_recieved;
-		diagnostic_msgs::KeyValue getEndPoint(std::vector<rosplan_dispatch_msgs::EsterelPlanNode> & node) const;
+
 		int getMinTime(rosplan_dispatch_msgs::EsterelPlan& plan) const;
+
         std::pair<int,int> getSites(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
         std::pair<int,int> getStations(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator);
         std::pair<std::string,std::vector<std::string> > splitIndividualGoals(int, int, std::string);
@@ -114,7 +121,9 @@ namespace KCL_rosplan {
 
 		/* problem decomposition service method */
 		bool decomposeProblem(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
-		bool getMissionGoals(rosplan_knowledge_msgs::GetAttributeService::Request &req, rosplan_knowledge_msgs::GetAttributeService::Response &res);
+
+		// create random TILs that will cause plan failure
+		bool createWeatherDisturbance(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 	};
 }
 #endif

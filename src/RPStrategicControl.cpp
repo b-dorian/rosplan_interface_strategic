@@ -1,7 +1,6 @@
 #include "rosplan_interface_strategic/RPStrategicControl.h"
 #include <iostream>
-#include <unistd.h>
-
+#include <random>
 
 /* The implementation of RPStrategicControl.h */
 namespace KCL_rosplan {
@@ -17,6 +16,9 @@ namespace KCL_rosplan {
 
         update_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base_tactical/update");
         update_strategic_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base_strategic/update");
+
+        update_array_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base_tactical/update_array");
+        update_array_strategic_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base_strategic/update_array");
 
         current_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/goals");
         current_propositions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/propositions");
@@ -67,20 +69,60 @@ namespace KCL_rosplan {
 
 
 
-    // called at the tactical level to get the relevant goals of a particular mission
-    /**
-     * get goals for particular mission
-     */
-    bool RPStrategicControl::getMissionGoals(rosplan_knowledge_msgs::GetAttributeService::Request &req, rosplan_knowledge_msgs::GetAttributeService::Response &res) {
 
-        std::string mission_name = req.predicate_name;
-        if(missions.find(mission_name)!=missions.end()) {
-            res.attributes = missions.find(mission_name)->second.goals; // all pddl goals in the mission
-        }
+    /**
+     * create random TILs that will cause plan failure
+     */
+
+
+
+
+    bool RPStrategicControl::createWeatherDisturbance(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+        std::random_device rd;
+        std::mt19937 eng(rd());
+        std::uniform_int_distribution<> distrStation(0, 22);
+        std::uniform_int_distribution<> distrTIL(1800, 2100);
+//        int station = distrStation(eng);
+//        int startTime = distrTIL(eng);
+//        int endTime = startTime + distrStation;
+
+//        // all inspection perspectives and components (no launch-pad)
+//        std::string perspectives[] = {"front","above","below","left","right","front-below","dock","radiation-pattern","dynamic-inspection360"};
+//        std::string components[] = {"-antenna-1","-antenna-2","-antenna-3","-antenna-4","-antenna-5","-antenna-6"};
+//        for (int i = 0; (sizeof(perspectives)/sizeof(*perspectives)); i++){
+//            for (int j = 0; (sizeof(components)/sizeof(*components)); j++){
+//
+//
+//                item.knowledge_type = 1;
+//                item.initial_time = 2;
+//                item.is_negative = true;
+//                item.attribute_name = "is-perspective";
+//                diagnostic_msgs::KeyValue param;
+//                param.key = "perspective";
+//                param.value = perspectives[j];
+//                item.values.push_back(param);
+//                std::stringstream ss;
+//                ss << "s" << station << components[i];
+//                param.key = "component";
+//                param.value = ss.str();
+//                item.values.push_back(param);
+//
+//                item.initial_time = 3;
+//                item.is_negative = false;
+//                update_strategic_knowledge_client.call(updateSrv);
+//
+//
+//            }
+//
+//        }
+
+
+
     }
 
-    // delete instances created automatically created by constants
-    //void deleteInstances()
+
+
+
 
 
     std::pair<int,int> RPStrategicControl::getSites(std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator it){
@@ -368,135 +410,123 @@ namespace KCL_rosplan {
                         if (pit->values[i].value.compare("drone1") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
-
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("tc-1") == 0) {
                         if (pit->values[i].value.compare("drone2") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("sm-a-1") == 0) {
                         if (pit->values[i].value.compare("drone1") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("sm-b-1") == 0) {
                         if (pit->values[i].value.compare("drone3") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("im-a-2") == 0) {
                         if (pit->values[i].value.compare("drone1") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                         if (pit->values[i].value.compare("drone3") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("im-b-2") == 0) {
                         if (pit->values[i].value.compare("drone1") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                         if (pit->values[i].value.compare("drone4") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("im-c-2") == 0) {
                         if (pit->values[i].value.compare("drone3") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                         if (pit->values[i].value.compare("drone6") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
 
@@ -506,130 +536,120 @@ namespace KCL_rosplan {
                         if (pit->values[i].value.compare("drone1") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                         if (pit->values[i].value.compare("drone4") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("tc-2") == 0) {
                         if (pit->values[i].value.compare("drone2") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                         if (pit->values[i].value.compare("drone5") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("sm-a-2") == 0) {
                         if (pit->values[i].value.compare("drone1") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                         if (pit->values[i].value.compare("drone3") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("sm-b-2") == 0) {
                         if (pit->values[i].value.compare("drone1") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                         if (pit->values[i].value.compare("drone4") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                     if (mission_type.compare("sm-c-2") == 0) {
                         if (pit->values[i].value.compare("drone3") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                         if (pit->values[i].value.compare("drone6") == 0) {
                             if (pit->attribute_name.compare("is-at") == 0) {
                                 pit->values[1].value = mission_location;
-                                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                                updateSrv.request.knowledge = *pit;
-                                update_tactical_knowledge_client.call(updateSrv);
+                                updateSrvArray.request.update_type.push_back(1);
+                                updateSrvArray.request.knowledge.push_back(*pit);
+                                missions[mission_name].type_goals[mission_type].push_back(*pit);
                                 missions[mission_name].type_goals[mission_type].push_back(*pit);
                             }
-                            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                            updateSrv.request.knowledge = *pit;
-                            update_tactical_knowledge_client.call(updateSrv);
+                            updateSrvArray.request.update_type.push_back(0);
+                            updateSrvArray.request.knowledge.push_back(*pit);
                         }
                     }
                 }
@@ -639,7 +659,7 @@ namespace KCL_rosplan {
         //add functions and set charge
         std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = functions.begin();
         for(; fit!=functions.end(); fit++) {
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
+
             for (int i = 0; i < fit->values.size() ; ++i){
 
                 //1 drone action
@@ -649,9 +669,8 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
-
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("tc-1") == 0){
@@ -659,8 +678,8 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("sm-a-1") == 0){
@@ -668,8 +687,8 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("sm-b-1") == 0){
@@ -677,8 +696,8 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("im-a-2") == 0){
@@ -686,15 +705,15 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                     if(fit->values[i].value.compare("drone3") == 0){
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("im-b-2") == 0){
@@ -702,15 +721,15 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                     if(fit->values[i].value.compare("drone4") == 0){
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("im-c-2") == 0){
@@ -718,15 +737,15 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                     if(fit->values[i].value.compare("drone6") == 0){
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
 
@@ -737,16 +756,16 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
 
                     }
                     if(fit->values[i].value.compare("drone4") == 0){
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
 
                     }
                 }
@@ -755,15 +774,15 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                     if(fit->values[i].value.compare("drone5") == 0){
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("sm-a-2") == 0){
@@ -771,15 +790,15 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                     if(fit->values[i].value.compare("drone3") == 0){
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("sm-b-2") == 0){
@@ -787,15 +806,15 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                     if(fit->values[i].value.compare("drone4") == 0){
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
                 if(mission_type.compare("sm-c-2") == 0){
@@ -803,36 +822,40 @@ namespace KCL_rosplan {
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                     if(fit->values[i].value.compare("drone6") == 0){
                         if(fit->attribute_name.compare("drone-charge") == 0){
                             fit->function_value = 0;
                         }
-                        updateSrv.request.knowledge = *fit;
-                        update_tactical_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*fit);
                     }
                 }
             }
         }
+        update_array_tactical_knowledge_client.call(updateSrvArray);
+        updateSrvArray.request.update_type.clear();
+        updateSrvArray.request.knowledge.clear();
     }
 
     void RPStrategicControl:: addInstances(std::string mission_type, int mission_site){
 
 
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-        updateSrv.request.knowledge.knowledge_type = 0;
+
+        item.knowledge_type = 0;
 
         if (mission_type.compare("strategic") == 0) {
             for (int i = 0; i < 21; i++){
-                updateSrv.request.knowledge.instance_type = "component";
-                updateSrv.request.knowledge.instance_name= getMissionTacticalLocation(i+1);
-                update_strategic_knowledge_client.call(updateSrv);
+                item.instance_type = "component";
+                item.instance_name= getMissionTacticalLocation(i+1);
+                updateSrvArray.request.update_type.push_back(0);
+                updateSrvArray.request.knowledge.push_back(item);
             }
         }else{
             for(int i = 0; i < component_instances.size(); ++i) {
-                updateSrv.request.knowledge.instance_type = "component";
+                item.instance_type = "component";
                 std::stringstream station_ss1;
                 station_ss1 << "s" << (mission_site-1)*3+1 << "-";
                 std::stringstream station_ss2;
@@ -845,130 +868,159 @@ namespace KCL_rosplan {
                 std::size_t station3 = component_instances[i].find(station_ss3.str());
 
                 if( (station1!=std::string::npos) || (station2!=std::string::npos) || (station3!=std::string::npos)) {
-                    updateSrv.request.knowledge.instance_name = component_instances[i];
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = component_instances[i];
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
 
             }
         }
 
         for(int i = 0; i < drone_instances.size(); ++i) {
-            updateSrv.request.knowledge.instance_type = "drone";
+            item.instance_type = "drone";
 
             if (mission_type.compare("strategic") == 0) {
-                updateSrv.request.knowledge.instance_name = drone_instances[i];
-                update_strategic_knowledge_client.call(updateSrv);
+                item.instance_name = drone_instances[i];
+                updateSrvArray.request.update_type.push_back(0);
+                updateSrvArray.request.knowledge.push_back(item);
             }
 
             // 1 drone action
             if (mission_type.compare("cm-1") == 0) {
                 if(drone_instances[i].compare("drone1") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone1";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone1";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("tc-1") == 0) {
                 if(drone_instances[i].compare("drone2") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone2";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone2";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("sm-a-1") == 0) {
                 if(drone_instances[i].compare("drone1") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone1";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone1";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("sm-b-1") == 0) {
                 if(drone_instances[i].compare("drone3") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone3";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone3";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("im-a-2") == 0) {
                 if(drone_instances[i].compare("drone1") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone1";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone1";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
                 if(drone_instances[i].compare("drone3") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone3";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone3";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("im-b-2") == 0) {
                 if(drone_instances[i].compare("drone1") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone1";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone1";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
                 if(drone_instances[i].compare("drone4") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone4";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone4";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("im-c-2") == 0) {
                 if(drone_instances[i].compare("drone3") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone3";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone3";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
                 if(drone_instances[i].compare("drone6") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone6";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone6";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
 
             // 2 drone action (without im)
             if (mission_type.compare("cm-2") == 0) {
                 if(drone_instances[i].compare("drone1") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone1";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone1";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
                 if(drone_instances[i].compare("drone4") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone4";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone4";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("tc-2") == 0) {
                 if(drone_instances[i].compare("drone2") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone2";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone2";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
                 if(drone_instances[i].compare("drone5") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone5";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone5";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("sm-a-2") == 0) {
                 if(drone_instances[i].compare("drone1") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone1";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone1";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
                 if(drone_instances[i].compare("drone3") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone3";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone3";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("sm-b-2") == 0) {
                 if(drone_instances[i].compare("drone1") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone1";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone1";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
                 if(drone_instances[i].compare("drone4") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone4";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone4";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
             if (mission_type.compare("sm-c-2") == 0) {
                 if(drone_instances[i].compare("drone3") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone3";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone3";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
                 if(drone_instances[i].compare("drone6") == 0){
-                    updateSrv.request.knowledge.instance_name = "drone6";
-                    update_tactical_knowledge_client.call(updateSrv);
+                    item.instance_name = "drone6";
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(item);
                 }
             }
-
         }
+        if(mission_type.compare("strategic") == 0) {
+            update_array_strategic_knowledge_client.call(updateSrvArray);
+        }
+        else{
+            update_array_tactical_knowledge_client.call(updateSrvArray);
+        }
+        updateSrvArray.request.update_type.clear();
+        updateSrvArray.request.knowledge.clear();
     }
 
 
@@ -1066,40 +1118,42 @@ namespace KCL_rosplan {
         for(; mit!=missions.end(); mit++) {
 
             // add metric
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_METRIC;
-            updateSrv.request.knowledge = metric;
-            update_tactical_knowledge_client.call(updateSrv);
+            updateSrvArray.request.update_type.push_back(4);
+            updateSrvArray.request.knowledge.push_back(metric);
 
             // add is-perspective propositions as mission is within time window
             diagnostic_msgs::KeyValue param;
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-            updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.knowledge_type = 1;
-            updateSrv.request.knowledge.attribute_name = "is-perspective";
+
+            item.values.clear();
+            item.knowledge_type = 0;
+            item.attribute_name = "is-perspective";
             param.key = "perspective";
             param.value = "launch-pad";
-            updateSrv.request.knowledge.values.push_back(param);
+            item.values.push_back(param);
             param.key = "component";
 
             std::stringstream ss;
             ss << "s" << (mit->second.site-1)*3+1 << "-tower-launchpad";
             param.value = ss.str();
-            updateSrv.request.knowledge.values.push_back(param);
-            update_tactical_knowledge_client.call(updateSrv);
+            item.values.push_back(param);
+            updateSrvArray.request.update_type.push_back(0);
+            updateSrvArray.request.knowledge.push_back(item);
 
-            updateSrv.request.knowledge.values.pop_back();
+            item.values.pop_back();
             ss.str("");
             ss << "s" << (mit->second.site-1)*3+2 << "-tower-launchpad";
             param.value = ss.str();
-            updateSrv.request.knowledge.values.push_back(param);
-            update_tactical_knowledge_client.call(updateSrv);
+            item.values.push_back(param);
+            updateSrvArray.request.update_type.push_back(0);
+            updateSrvArray.request.knowledge.push_back(item);
 
-            updateSrv.request.knowledge.values.pop_back();
+            item.values.pop_back();
             ss.str("");
             ss << "s" << (mit->second.site-1)*3+3 << "-tower-launchpad";
             param.value = ss.str();
-            updateSrv.request.knowledge.values.push_back(param);
-            update_tactical_knowledge_client.call(updateSrv);
+            item.values.push_back(param);
+            updateSrvArray.request.update_type.push_back(0);
+            updateSrvArray.request.knowledge.push_back(item);
 
 
             for(int i = 0; i < mit->second.types.size() ; i++){
@@ -1113,26 +1167,28 @@ namespace KCL_rosplan {
                 //add subgoal pddl goals
                 std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mit->second.goals.begin();
                 for(; git!=mit->second.goals.end(); git++) {
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-                    updateSrv.request.knowledge = *git;
-                    update_tactical_knowledge_client.call(updateSrv);
+                    updateSrvArray.request.update_type.push_back(1);
+                    updateSrvArray.request.knowledge.push_back(*git);
                 }
 
                 //add subgoal initial state propositions
                 std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = mit->second.propositions.begin();
                 for(; pit!=mit->second.propositions.end(); pit++) {
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *pit;
-                    update_tactical_knowledge_client.call(updateSrv);
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*pit);
                 }
 
                 //add subgoal initial state functions
                 std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = mit->second.functions.begin();
                 for(; fit!=mit->second.functions.end(); fit++) {
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *fit;
-                    update_tactical_knowledge_client.call(updateSrv);
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*fit);
                 }
+
+
+                update_array_tactical_knowledge_client.call(updateSrvArray);
+                updateSrvArray.request.update_type.clear();
+                updateSrvArray.request.knowledge.clear();
 
                 std::stringstream ss;
                 ss << mit->first << " " << mit->second.types[i];
@@ -1207,92 +1263,70 @@ namespace KCL_rosplan {
 
         //add non-mission strategic problem details
 
-            //add instances
+        //add instances
         addInstances("strategic",0);
 
-            //add metric
-        updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_METRIC;
-        updateSrv.request.knowledge = metric;
-        update_strategic_knowledge_client.call(updateSrv);
+        //add metric
+        updateSrvArray.request.update_type.push_back(4);
+        updateSrvArray.request.knowledge.push_back(metric);
 
-            // add perspective constraints
-        for (int i = 0; i < 21; i++){
-
-            diagnostic_msgs::KeyValue param;
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-            updateSrv.request.knowledge.knowledge_type = 1;
-            updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.attribute_name = "station-available";
-            param.key = "component";
-            param.value = getMissionTacticalLocation(i+1);
-            updateSrv.request.knowledge.values.push_back(param);
-            update_strategic_knowledge_client.call(updateSrv);
-
-        }
-
-            //add propositions
+        //add propositions
         std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
         for(; pit!=propositions.end(); pit++) {
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
+
 
             for (int i = 0; i < pit->values.size() ; ++i){
 
                 if(pit->attribute_name.compare("is-charging-dock") == 0){
-                    if((pit->values[i].value.compare("s1-tower-launchpad") == 0) || (pit->values[i].value.compare("s4-tower-launchpad") == 0) || (pit->values[i].value.compare("s7-tower-launchpad") == 0) || (pit->values[i].value.compare("s10-tower-launchpad") == 0) || (pit->values[i].value.compare("s13-tower-launchpad") == 0) || (pit->values[i].value.compare("s16-tower-launchpad") == 0) || (pit->values[i].value.compare("s19-tower-launchpad") == 0)){
-                        updateSrv.request.knowledge = *pit;
-                        update_strategic_knowledge_client.call(updateSrv);
-                    }
-                }
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*pit);
 
+                }
                 if(pit->values[i].key.compare("drone") == 0){
-                    updateSrv.request.knowledge = *pit;
-                    update_strategic_knowledge_client.call(updateSrv);
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*pit);
                 }
                 if((pit->values[i].value.compare("s1-tower-launchpad") == 0) || (pit->values[i].value.compare("s4-tower-launchpad") == 0) || (pit->values[i].value.compare("s7-tower-launchpad") == 0) || (pit->values[i].value.compare("s10-tower-launchpad") == 0) || (pit->values[i].value.compare("s13-tower-launchpad") == 0) || (pit->values[i].value.compare("s16-tower-launchpad") == 0) || (pit->values[i].value.compare("s19-tower-launchpad") == 0)){
                     std::cout << pit->attribute_name << "\n";
                     if(pit->attribute_name.compare("is-perspective") == 0){
-                        updateSrv.request.knowledge = *pit;
-                        update_strategic_knowledge_client.call(updateSrv);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(*pit);
                     }
                 }
 
             }
         }
 
-            //add functions
+        //add functions
         std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator fit = functions.begin();
         for(; fit!=functions.end(); fit++) {
 
             if(fit->attribute_name.compare("distance") == 0){
                 if(((fit->values[0].value.compare("s1-tower-launchpad") == 0) || (fit->values[0].value.compare("s4-tower-launchpad") == 0) || (fit->values[0].value.compare("s7-tower-launchpad") == 0) || (fit->values[0].value.compare("s10-tower-launchpad") == 0) || (fit->values[0].value.compare("s13-tower-launchpad") == 0) || (fit->values[0].value.compare("s16-tower-launchpad") == 0) || (fit->values[0].value.compare("s19-tower-launchpad") == 0)) && ((fit->values[1].value.compare("s1-tower-launchpad") == 0) || (fit->values[1].value.compare("s4-tower-launchpad") == 0) || (fit->values[1].value.compare("s7-tower-launchpad") == 0) || (fit->values[1].value.compare("s10-tower-launchpad") == 0) || (fit->values[1].value.compare("s13-tower-launchpad") == 0) || (fit->values[1].value.compare("s16-tower-launchpad") == 0) || (fit->values[1].value.compare("s19-tower-launchpad") == 0))){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *fit;
-                    update_strategic_knowledge_client.call(updateSrv);
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*fit);
                 }
             }
 
             if(fit->attribute_name.compare("max-dock") == 0){
                 if((fit->values[0].value.compare("s1-tower-launchpad") == 0) || (fit->values[0].value.compare("s7-tower-launchpad") == 0) || (fit->values[0].value.compare("s10-tower-launchpad") == 0) || (fit->values[0].value.compare("s13-tower-launchpad") == 0) || (fit->values[0].value.compare("s16-tower-launchpad") == 0) || (fit->values[0].value.compare("s19-tower-launchpad") == 0)){
-                    fit->function_value = 3;
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *fit;
-                    update_strategic_knowledge_client.call(updateSrv);
+                    //fit->function_value = 3;
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*fit);
 
                 }
                 if(fit->values[0].value.compare("s4-tower-launchpad") == 0){
-                    fit->function_value = 0;
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *fit;
-                    update_strategic_knowledge_client.call(updateSrv);
+                    //fit->function_value = 0;
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*fit);
                 }
             }
 
             for (int i = 0; i < fit->values.size() ; ++i){
 
                 if(fit->values[i].key.compare("drone") == 0){
-                    updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                    updateSrv.request.knowledge = *fit;
-                    update_strategic_knowledge_client.call(updateSrv);
+                    updateSrvArray.request.update_type.push_back(0);
+                    updateSrvArray.request.knowledge.push_back(*fit);
                 }
             }
 
@@ -1302,105 +1336,127 @@ namespace KCL_rosplan {
         mit = missions.begin();
         for(; mit!=missions.end(); mit++) {
 
-            updateSrv.request.knowledge.is_negative = false;
-            updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.initial_time.sec = 0;
-            updateSrv.request.knowledge.initial_time.nsec = 0;
+            item.is_negative = false;
+            item.values.clear();
+            item.initial_time.sec = 0;
+            item.initial_time.nsec = 0;
 
 
             // add mission object
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-            updateSrv.request.knowledge.knowledge_type = 0;
-            updateSrv.request.knowledge.instance_type = "mission";
-            updateSrv.request.knowledge.instance_name = mit->first;
-            update_strategic_knowledge_client.call(updateSrv);
+
+            item.knowledge_type = 0;
+            item.instance_type = "mission";
+            item.instance_name = mit->first;
+            updateSrvArray.request.update_type.push_back(0);
+            updateSrvArray.request.knowledge.push_back(item);
 
             // add strategic goals
             diagnostic_msgs::KeyValue param;
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_GOAL;
-            updateSrv.request.knowledge.knowledge_type = 1;
-            updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.attribute_name = "mission_complete";
-            updateSrv.request.knowledge.function_value = 0;
-            updateSrv.request.knowledge.instance_type = "";
-            updateSrv.request.knowledge.instance_name = "";
+
+            item.knowledge_type = 1;
+            item.values.clear();
+            item.attribute_name = "mission_complete";
+            item.function_value = 0;
+            item.instance_type = "";
+            item.instance_name = "";
             param.key = "mission";
             param.value = mit->first;
-            updateSrv.request.knowledge.values.push_back(param);
-            update_strategic_knowledge_client.call(updateSrv);
+            item.values.push_back(param);
+            updateSrvArray.request.update_type.push_back(1);
+            updateSrvArray.request.knowledge.push_back(item);
 
             // add mission active status
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-            updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.knowledge_type = 1;
-            updateSrv.request.knowledge.attribute_name = "active";
+
+            item.values.clear();
+            item.knowledge_type = 1;
+            item.attribute_name = "active";
             param.key = "mission";
             param.value = mit->first;
-            updateSrv.request.knowledge.values.push_back(param);
-            update_strategic_knowledge_client.call(updateSrv);
+            item.values.push_back(param);
+            updateSrvArray.request.update_type.push_back(0);
+            updateSrvArray.request.knowledge.push_back(item);
 
             // add mission strategic location
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-            updateSrv.request.knowledge.knowledge_type = 1;
-            updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.attribute_name = "mission_site";
+
+            item.knowledge_type = 1;
+            item.values.clear();
+            item.attribute_name = "mission_site";
             param.key = "mission";
             param.value = mit->first;
-            updateSrv.request.knowledge.values.push_back(param);
+            item.values.push_back(param);
             param.key = "component";
             param.value = getMissionStrategicLocation(mit->second.site);
-            updateSrv.request.knowledge.values.push_back(param);
-            update_strategic_knowledge_client.call(updateSrv);
+            item.values.push_back(param);
+            updateSrvArray.request.update_type.push_back(0);
+            updateSrvArray.request.knowledge.push_back(item);
 
             // add mission tactical location
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-            updateSrv.request.knowledge.knowledge_type = 1;
-            updateSrv.request.knowledge.values.clear();
-            updateSrv.request.knowledge.attribute_name = "mission_station";
+
+            item.knowledge_type = 1;
+            item.values.clear();
+            item.attribute_name = "mission_station";
             param.key = "mission";
             param.value = mit->first;
-            updateSrv.request.knowledge.values.push_back(param);
+            item.values.push_back(param);
             param.key = "component";
             param.value = getMissionTacticalLocation(mit->second.station);
-            updateSrv.request.knowledge.values.push_back(param);
-            update_strategic_knowledge_client.call(updateSrv);
+            item.values.push_back(param);
+            updateSrvArray.request.update_type.push_back(0);
+            updateSrvArray.request.knowledge.push_back(item);
+
+            // add station-available constraint
+
+            item.knowledge_type = 1;
+            item.values.clear();
+            item.attribute_name = "station-available";
+            param.key = "component";
+            param.value = getMissionTacticalLocation(mit->second.station);
+            item.values.push_back(param);
+            updateSrvArray.request.update_type.push_back(0);
+            updateSrvArray.request.knowledge.push_back(item);
 
             // add mission type and duration
             for(int i = 0; i < mit->second.types.size() ; i++){
-                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                updateSrv.request.knowledge.values.clear();
-                updateSrv.request.knowledge.knowledge_type = 1;
-                updateSrv.request.knowledge.attribute_name = "mission_type";
-                param.key = "mission";
-                param.value = mit->first;
-                updateSrv.request.knowledge.values.push_back(param);
-                param.key = "inspection";
-                param.value = mit->second.types[i];
-                updateSrv.request.knowledge.values.push_back(param);
-                update_strategic_knowledge_client.call(updateSrv);
 
-                updateSrv.request.knowledge.values.clear();
-                updateSrv.request.knowledge.knowledge_type = 2;
-                updateSrv.request.knowledge.attribute_name = "mission_duration";
-                updateSrv.request.knowledge.function_value = mit->second.durations[i];
+                item.values.clear();
+                item.knowledge_type = 1;
+                item.attribute_name = "mission_type";
                 param.key = "mission";
                 param.value = mit->first;
-                updateSrv.request.knowledge.values.push_back(param);
+                item.values.push_back(param);
                 param.key = "inspection";
                 param.value = mit->second.types[i];
-                updateSrv.request.knowledge.values.push_back(param);
-                update_strategic_knowledge_client.call(updateSrv);
+                item.values.push_back(param);
+                updateSrvArray.request.update_type.push_back(0);
+                updateSrvArray.request.knowledge.push_back(item);
+
+                item.values.clear();
+                item.knowledge_type = 2;
+                item.attribute_name = "mission_duration";
+                item.function_value = mit->second.durations[i];
+                param.key = "mission";
+                param.value = mit->first;
+                item.values.push_back(param);
+                param.key = "inspection";
+                param.value = mit->second.types[i];
+                item.values.push_back(param);
+                updateSrvArray.request.update_type.push_back(0);
+                updateSrvArray.request.knowledge.push_back(item);
 
             }
 
             // add mission's time windows
             for(int i = 0; i < mit->second.timed_knowledge.size() ; i++){
-                updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::ADD_KNOWLEDGE;
-                updateSrv.request.knowledge = mit->second.timed_knowledge[i];
-                update_strategic_knowledge_client.call(updateSrv);
+
+                item = mit->second.timed_knowledge[i];
+                updateSrvArray.request.update_type.push_back(0);
+                updateSrvArray.request.knowledge.push_back(item);
 
             }
         }
+        update_array_strategic_knowledge_client.call(updateSrvArray);
+        updateSrvArray.request.update_type.clear();
+        updateSrvArray.request.knowledge.clear();
     }
 
 //  //going to change when I have the updated edge durations
@@ -1456,7 +1512,7 @@ int main(int argc, char **argv) {
 
     // listen
     ros::ServiceServer service1 = nh.advertiseService("decompose_problem", &KCL_rosplan::RPStrategicControl::decomposeProblem, &rpsc);
-    ros::ServiceServer service2 = nh.advertiseService("get_mission_goals", &KCL_rosplan::RPStrategicControl::getMissionGoals, &rpsc);
+    ros::ServiceServer service2 = nh.advertiseService("create_weather_disturbance", &KCL_rosplan::RPStrategicControl::createWeatherDisturbance, &rpsc);
 
     ros::Subscriber lps = nh.subscribe(lps_topic, 100, &KCL_rosplan::RPStrategicControl::planCallback, &rpsc);
 

@@ -8,6 +8,7 @@
 
 #include "rosplan_knowledge_msgs/KnowledgeItem.h"
 #include "rosplan_knowledge_msgs/KnowledgeUpdateService.h"
+#include "rosplan_knowledge_msgs/KnowledgeUpdateServiceArray.h"
 #include "rosplan_knowledge_msgs/GetAttributeService.h"
 #include "rosplan_knowledge_msgs/GetInstanceService.h"
 #include "rosplan_dispatch_msgs/ActionDispatch.h"
@@ -45,6 +46,7 @@ namespace KCL_rosplan {
         ros::ServiceClient clear_tactical_knowledge_client;
         ros::ServiceClient import_state_client;
         ros::ServiceClient update_tactical_knowledge_client;
+        ros::ServiceClient update_array_tactical_knowledge_client;
         ros::ServiceClient mission_goals_client;
         ros::ServiceClient mission_propositions_client;
         ros::ServiceClient mission_functions_client;
@@ -68,7 +70,9 @@ namespace KCL_rosplan {
         std::vector<rosplan_knowledge_msgs::KnowledgeItem> mission_functions;
 
 
+        rosplan_knowledge_msgs::KnowledgeItem item;
         rosplan_knowledge_msgs::KnowledgeUpdateService updateSrv;
+        rosplan_knowledge_msgs::KnowledgeUpdateServiceArray updateSrvArray;
         std_srvs::Empty empty;
 
     public:
