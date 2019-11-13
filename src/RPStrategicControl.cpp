@@ -1,6 +1,7 @@
 #include "rosplan_interface_strategic/RPStrategicControl.h"
 #include <iostream>
 #include <random>
+#include <ctime>
 
 /* The implementation of RPStrategicControl.h */
 namespace KCL_rosplan {
@@ -14,9 +15,11 @@ namespace KCL_rosplan {
         clear_tactical_knowledge_client = nh.serviceClient<std_srvs::Empty>("/rosplan_knowledge_base_tactical/clear");
         clear_strategic_knowledge_client = nh.serviceClient<std_srvs::Empty>("/rosplan_knowledge_base_strategic/clear");
 
+
         update_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base_tactical/update");
         update_strategic_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base_strategic/update");
 
+        update_array_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base/update_array");
         update_array_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base_tactical/update_array");
         update_array_strategic_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base_strategic/update_array");
 
@@ -67,56 +70,65 @@ namespace KCL_rosplan {
     /* missions */
     /*----------*/
 
+    /**
+     * disable a random drone's sensor(s) or motor
+     */
+    bool RPStrategicControl::disableRandomDrone(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
 
-
+    }
 
     /**
      * create random TILs that will cause plan failure
      */
-
-
-
-
     bool RPStrategicControl::createWeatherDisturbance(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+
+        double sysTime = time(0);
         std::random_device rd;
         std::mt19937 eng(rd());
-        std::uniform_int_distribution<> distrStation(0, 22);
+        std::uniform_int_distribution<> distrStation(0, 21);
         std::uniform_int_distribution<> distrTIL(1800, 2100);
-//        int station = distrStation(eng);
-//        int startTime = distrTIL(eng);
-//        int endTime = startTime + distrStation;
+        int station = distrStation(eng);
+        std::cout << station << " good till here\n";
+        double startTime = sysTime + distrTIL(eng);
+        double endTime = startTime + 300;
 
-//        // all inspection perspectives and components (no launch-pad)
-//        std::string perspectives[] = {"front","above","below","left","right","front-below","dock","radiation-pattern","dynamic-inspection360"};
-//        std::string components[] = {"-antenna-1","-antenna-2","-antenna-3","-antenna-4","-antenna-5","-antenna-6"};
-//        for (int i = 0; (sizeof(perspectives)/sizeof(*perspectives)); i++){
-//            for (int j = 0; (sizeof(components)/sizeof(*components)); j++){
-//
-//
-//                item.knowledge_type = 1;
-//                item.initial_time = 2;
-//                item.is_negative = true;
-//                item.attribute_name = "is-perspective";
-//                diagnostic_msgs::KeyValue param;
-//                param.key = "perspective";
-//                param.value = perspectives[j];
-//                item.values.push_back(param);
-//                std::stringstream ss;
-//                ss << "s" << station << components[i];
-//                param.key = "component";
-//                param.value = ss.str();
-//                item.values.push_back(param);
-//
-//                item.initial_time = 3;
-//                item.is_negative = false;
-//                update_strategic_knowledge_client.call(updateSrv);
-//
-//
-//            }
-//
-//        }
+        // all inspection perspectives and components (no launch-pad)
+        std::string perspectives[] = {"front","above","below","left","right","front-below","dock","radiation-pattern","dynamic-inspection360"};
+        std::string components[] = {"-antenna-1","-antenna-2","-antenna-3","-antenna-4","-antenna-5","-antenna-6"};
+        for (int i = 0; i < (sizeof(perspectives)/sizeof(*perspectives)); i++){
+            for (int j = 0; j< (sizeof(components)/sizeof(*components)); j++){
 
+                item.knowledge_type = 1;
+                item.initial_time.sec = startTime;
+                item.initial_time.nsec = 0;
+                item.function_value = 0;
+                item.is_negative = true;
+                item.attribute_name = "is-perspective";
+                diagnostic_msgs::KeyValue param;
+                param.key = "perspective";
+                param.value = perspectives[j];
+                item.values.push_back(param);
+                std::stringstream ss;
+                ss << "s" << station << components[j];
+                param.key = "component";
+                param.value = ss.str();
+                item.values.push_back(param);
+                updateSrvArray.request.update_type.push_back(0);
+                updateSrvArray.request.knowledge.push_back(item);
 
+                item.initial_time.sec = startTime;
+                item.initial_time.nsec = 0;
+                item.is_negative = false;
+                updateSrvArray.request.update_type.push_back(0);
+                updateSrvArray.request.knowledge.push_back(item);
+
+                item.values.clear();
+
+            }
+        }
+        update_array_knowledge_client.call(updateSrvArray);
+        updateSrvArray.request.update_type.clear();
+        updateSrvArray.request.knowledge.clear();
 
     }
 
@@ -186,7 +198,8 @@ namespace KCL_rosplan {
 
     // sort and store pddl goals into desired missions
     std::pair<std::string,std::vector<std::string> > RPStrategicControl::splitIndividualGoals(int station, int site, std::string knowledge){
-
+        std::cout << time(0) << "\n";
+        ros::Duration(100).sleep();
         std::pair<std::string,std::vector<std::string> > name_and_type;
         std::stringstream ss;
         ss << "station-" << station << "-" << knowledge;
@@ -1213,7 +1226,7 @@ namespace KCL_rosplan {
                     planService.request.domain_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/droneacharya/droneacharya-domain-all.pddl";
                     planService.request.problem_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/problem_tactical.pddl";
                     planService.request.data_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical";
-                    planService.request.planner_command = "timeout 100 /home/nq/ROSPlan/src/rosplan_interface_strategic/common/optic-cplex -N DOMAIN PROBLEM";
+                    planService.request.planner_command = "timeout 50 /home/nq/ROSPlan/src/rosplan_interface_strategic/common/optic-cplex DOMAIN PROBLEM";
                     planService.request.use_problem_topic = false;
 
                     planning_client_params.call(planService);
@@ -1282,7 +1295,7 @@ namespace KCL_rosplan {
                     updateSrvArray.request.knowledge.push_back(*pit);
 
                 }
-                if(pit->values[i].key.compare("drone") == 0){
+                if((pit->values[i].key.compare("drone") == 0) && (pit->attribute_name.compare("is-at") != 0)){
                     updateSrvArray.request.update_type.push_back(0);
                     updateSrvArray.request.knowledge.push_back(*pit);
                 }
@@ -1308,15 +1321,17 @@ namespace KCL_rosplan {
                 }
             }
 
+            // non start location
             if(fit->attribute_name.compare("max-dock") == 0){
                 if((fit->values[0].value.compare("s1-tower-launchpad") == 0) || (fit->values[0].value.compare("s7-tower-launchpad") == 0) || (fit->values[0].value.compare("s10-tower-launchpad") == 0) || (fit->values[0].value.compare("s13-tower-launchpad") == 0) || (fit->values[0].value.compare("s16-tower-launchpad") == 0) || (fit->values[0].value.compare("s19-tower-launchpad") == 0)){
-                    //fit->function_value = 3;
+                    fit->function_value = 12;
                     updateSrvArray.request.update_type.push_back(0);
                     updateSrvArray.request.knowledge.push_back(*fit);
 
                 }
+                //single start location
                 if(fit->values[0].value.compare("s4-tower-launchpad") == 0){
-                    //fit->function_value = 0;
+                    fit->function_value = 12;
                     updateSrvArray.request.update_type.push_back(0);
                     updateSrvArray.request.knowledge.push_back(*fit);
                 }
