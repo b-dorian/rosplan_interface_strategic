@@ -48,6 +48,9 @@ namespace KCL_rosplan {
         ros::ServiceClient current_instances_client;
 		ros::ServiceClient current_goals_client;
 		ros::ServiceClient current_propositions_client;
+        ros::ServiceClient strategic_propositions_client;
+        ros::ServiceClient strategic_goals_client;
+        ros::ServiceClient tactical_propositions_client;
         ros::ServiceClient current_functions_client;
         ros::ServiceClient current_knowledge_client;
         ros::ServiceClient current_constants_client;
@@ -128,6 +131,9 @@ namespace KCL_rosplan {
 		// create random TILs that will cause plan failure
 		bool createWeatherDisturbance(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 		bool disableRandomDrones(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+		bool updateStrategicKB(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+
+
 	};
 }
 #endif

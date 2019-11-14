@@ -23,6 +23,10 @@ namespace KCL_rosplan {
         update_array_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base_tactical/update_array");
         update_array_strategic_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateServiceArray>("/rosplan_knowledge_base_strategic/update_array");
 
+        strategic_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base_strategic/state/goals");
+        strategic_propositions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base_strategic/state/propositions");
+        tactical_propositions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base_tactical/state/propositions");
+
         current_goals_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/goals");
         current_propositions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/propositions");
         current_functions_client = nh.serviceClient<rosplan_knowledge_msgs::GetAttributeService>("/rosplan_knowledge_base/state/functions");
@@ -69,6 +73,7 @@ namespace KCL_rosplan {
     /*----------*/
     /* missions */
     /*----------*/
+
 
     /**
      * disable random drone(s)
@@ -196,7 +201,29 @@ namespace KCL_rosplan {
     }
 
 
+    // remove completed missions from the strategic kb
+    bool RPStrategicControl::updateStrategicKB(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res){
 
+        // fetch current propositions
+        rosplan_knowledge_msgs::GetAttributeService currentPropositionsSrv;
+        if (!current_propositions_client.call(currentPropositionsSrv)) {
+            ROS_ERROR("KCL: (%s) Failed to call runtime KB propositions service.", ros::this_node::getName().c_str());
+        } else {
+            propositions = currentPropositionsSrv.response.attributes;
+        }
+
+        // remove completed mission propositions from strategic kb
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator pit = propositions.begin();
+        for(; pit!=propositions.end(); pit++) {
+            if(pit->attribute_name.compare("mission_complete") == 0){
+                updateSrvArray.request.update_type.push_back(3);
+                updateSrvArray.request.knowledge.push_back(*pit);
+            }
+        }
+        update_array_strategic_knowledge_client.call(updateSrvArray);
+        updateSrvArray.request.update_type.clear();
+        updateSrvArray.request.knowledge.clear();
+    }
 
 
 
@@ -262,7 +289,6 @@ namespace KCL_rosplan {
     // sort and store pddl goals into desired missions
     std::pair<std::string,std::vector<std::string> > RPStrategicControl::splitIndividualGoals(int station, int site, std::string knowledge){
         std::cout << time(0) << "\n";
-        ros::Duration(100).sleep();
         std::pair<std::string,std::vector<std::string> > name_and_type;
         std::stringstream ss;
         ss << "station-" << station << "-" << knowledge;
@@ -1289,7 +1315,7 @@ namespace KCL_rosplan {
                     planService.request.domain_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/droneacharya/droneacharya-domain-all.pddl";
                     planService.request.problem_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/problem_tactical.pddl";
                     planService.request.data_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical";
-                    planService.request.planner_command = "timeout 50 /home/nq/ROSPlan/src/rosplan_interface_strategic/common/optic-cplex DOMAIN PROBLEM";
+                    planService.request.planner_command = "timeout 50 /home/nq/ROSPlan/src/rosplan_interface_strategic/common/optic-cplex -N DOMAIN PROBLEM";
                     planService.request.use_problem_topic = false;
 
                     planning_client_params.call(planService);
@@ -1592,6 +1618,7 @@ int main(int argc, char **argv) {
     ros::ServiceServer service1 = nh.advertiseService("decompose_problem", &KCL_rosplan::RPStrategicControl::decomposeProblem, &rpsc);
     ros::ServiceServer service2 = nh.advertiseService("create_weather_disturbance", &KCL_rosplan::RPStrategicControl::createWeatherDisturbance, &rpsc);
     ros::ServiceServer service3 = nh.advertiseService("disable_random_drones", &KCL_rosplan::RPStrategicControl::disableRandomDrones, &rpsc);
+    ros::ServiceServer service4 = nh.advertiseService("update_strategic_kb", &KCL_rosplan::RPStrategicControl::updateStrategicKB, &rpsc);
 
     ros::Subscriber lps = nh.subscribe(lps_topic, 100, &KCL_rosplan::RPStrategicControl::planCallback, &rpsc);
 
