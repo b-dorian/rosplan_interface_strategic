@@ -16,6 +16,7 @@ namespace KCL_rosplan {
         clear_strategic_knowledge_client = nh.serviceClient<std_srvs::Empty>("/rosplan_knowledge_base_strategic/clear");
 
 
+        update_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base/update");
         update_tactical_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base_tactical/update");
         update_strategic_knowledge_client = nh.serviceClient<rosplan_knowledge_msgs::KnowledgeUpdateService>("/rosplan_knowledge_base_strategic/update");
 
@@ -79,7 +80,7 @@ namespace KCL_rosplan {
      * disable random drone(s)
      * to add: disable one sensor, several sensors, or motor
      */
-    bool RPStrategicControl::disableRandomDrones(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+    bool RPStrategicControl::disableRandomDronesFeature(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
 
         if(disabledDrones.size() < 12) {
 
@@ -112,7 +113,7 @@ namespace KCL_rosplan {
 
                 int randomTime = distrTIL(eng);
                 disabledDronesStartTime.push_back(randomTime);
-                double startTime = sysTime + randomTime;
+                int startTime = sysTime + randomTime;
 
                 item.knowledge_type = 1;
                 item.initial_time.sec = startTime;
@@ -143,6 +144,47 @@ namespace KCL_rosplan {
             }
         }
 
+    }
+
+    bool RPStrategicControl::disableDrone(rosplan_knowledge_msgs::EricssonSTKBModifier::Request &req, rosplan_knowledge_msgs::EricssonSTKBModifier::Response &res) {
+
+        if(disabledDrones.size() < 12) {
+
+            std::random_device rd;
+            std::mt19937 eng(rd());
+            std::uniform_int_distribution<> distrRemovalTime(1, 2);
+            int removalTime = distrRemovalTime(eng);
+            int drone = req.drone;
+
+            //check if drone is already on the removed list
+            bool addDrone = true;
+            for (int j = 0; j < disabledDrones.size(); j++) {
+                if (drone == disabledDrones[j])addDrone = false;
+            }
+            if (addDrone) {
+                disabledDrones.push_back(drone);
+            } else {
+                ROS_INFO("KCL: (%s) Drone %i is already on the removal list.",
+                         ros::this_node::getName().c_str(), drone);
+                return false;
+            }
+
+
+            std::stringstream ss;
+            ss << "drone" << drone;
+            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+            updateSrv.request.knowledge.knowledge_type = 0;
+            updateSrv.request.knowledge.instance_type = "drone";
+            updateSrv.request.knowledge.instance_name = ss.str();
+            updateSrv.request.knowledge.attribute_name = "";
+            updateSrv.request.knowledge.function_value = 0.0;
+
+            ROS_INFO("KCL: (%s) !!! Drone %i will have an engine failure at %i seconds !!!",
+                     ros::this_node::getName().c_str(), drone, removalTime);
+            usleep(removalTime*1000000);
+            update_knowledge_client.call(updateSrv);
+
+        }
     }
 
     /**
@@ -1617,8 +1659,10 @@ int main(int argc, char **argv) {
     // listen
     ros::ServiceServer service1 = nh.advertiseService("decompose_problem", &KCL_rosplan::RPStrategicControl::decomposeProblem, &rpsc);
     ros::ServiceServer service2 = nh.advertiseService("create_weather_disturbance", &KCL_rosplan::RPStrategicControl::createWeatherDisturbance, &rpsc);
-    ros::ServiceServer service3 = nh.advertiseService("disable_random_drones", &KCL_rosplan::RPStrategicControl::disableRandomDrones, &rpsc);
+    ros::ServiceServer service3 = nh.advertiseService("disable_random_drones_features", &KCL_rosplan::RPStrategicControl::disableRandomDronesFeature, &rpsc);
     ros::ServiceServer service4 = nh.advertiseService("update_strategic_kb", &KCL_rosplan::RPStrategicControl::updateStrategicKB, &rpsc);
+
+    ros::ServiceServer service5 = nh.advertiseService("disable_drone", &KCL_rosplan::RPStrategicControl::disableDrone, &rpsc);
 
     ros::Subscriber lps = nh.subscribe(lps_topic, 100, &KCL_rosplan::RPStrategicControl::planCallback, &rpsc);
 

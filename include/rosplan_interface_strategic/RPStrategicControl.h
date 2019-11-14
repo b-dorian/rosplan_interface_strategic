@@ -15,6 +15,9 @@
 #include "rosplan_dispatch_msgs/ProblemService.h"
 #include "rosplan_dispatch_msgs/PlanningService.h"
 
+// to debug, must be placed and accessed from rosplan_interface_strategic package
+#include "rosplan_knowledge_msgs/EricssonSTKBModifier.h"
+
 #include "std_msgs/String.h"
 #include "std_srvs/Empty.h"
 
@@ -38,6 +41,7 @@ namespace KCL_rosplan {
         std_srvs::Empty empty;
 
 		/* rosplan knowledge interface */
+		ros::ServiceClient update_knowledge_client;
 		ros::ServiceClient update_tactical_knowledge_client;
         ros::ServiceClient update_strategic_knowledge_client;
         ros::ServiceClient update_array_tactical_knowledge_client;
@@ -130,9 +134,10 @@ namespace KCL_rosplan {
 
 		// create random TILs that will cause plan failure
 		bool createWeatherDisturbance(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
-		bool disableRandomDrones(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+		bool disableRandomDronesFeature(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 		bool updateStrategicKB(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 
+        bool disableDrone(rosplan_knowledge_msgs::EricssonSTKBModifier::Request &req, rosplan_knowledge_msgs::EricssonSTKBModifier::Response &res);
 
 	};
 }
