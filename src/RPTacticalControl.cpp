@@ -135,6 +135,16 @@ namespace KCL_rosplan {
                     updateSrvArray.request.knowledge.push_back(*pit);
                 }
             }
+
+        }
+
+        //remove inaccurate tactical offline mission goals
+        std::vector<rosplan_knowledge_msgs::KnowledgeItem>::iterator git = mission_goals.begin();
+        for (; git != mission_goals.end(); git++) {
+            if (git->attribute_name.compare("is-at") == 0){
+                updateSrvArray.request.update_type.push_back(3);
+                updateSrvArray.request.knowledge.push_back(*git);
+            }
         }
 
         //remove drone instance
@@ -145,11 +155,11 @@ namespace KCL_rosplan {
         updateSrvArray.request.knowledge.push_back(item);
 
 
-        // add relevant drone instances and propositions from executionKB to tacticalKB
+        // remove offline tactical inaccurate goals and propositions and add correct ones
         pit = propositions.begin();
         for (; pit != propositions.end(); pit++) {
             for(int i = 0; i < pit->values.size(); ++i ){
-                if((pit->values[i].key.compare("drone") == 0) && (pit->values[i].value.compare(drones.first) == 0)){
+                if((pit->values[i].key.compare("drone") == 0) && (pit->values[i].value.compare(drones.first) == 0) && (pit->attribute_name.compare("is-at") != 0)){
 
                     item.knowledge_type = 0;
                     item.instance_type = "drone";
@@ -160,6 +170,19 @@ namespace KCL_rosplan {
                     updateSrvArray.request.update_type.push_back(0);
                     updateSrvArray.request.knowledge.push_back(*pit);
 
+                    //add mission start and end locations (propostion for start, goal for end)
+                    if(pit->attribute_name.compare("is-at-component") == 0){
+                        rosplan_knowledge_msgs::KnowledgeItem tempItem = *pit;
+                        tempItem.attribute_name = "is-at";
+                        diagnostic_msgs::KeyValue param;
+                        param.key = "perspective";
+                        param.value = "launch-pad";
+                        tempItem.values.push_back(param);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(tempItem);
+                        updateSrvArray.request.update_type.push_back(1);
+                        updateSrvArray.request.knowledge.push_back(tempItem);
+                    }
                 }
                 if((pit->values[i].key.compare("drone") == 0) && (pit->values[i].value.compare(drones.second) == 0)){
 
@@ -171,6 +194,20 @@ namespace KCL_rosplan {
 
                     updateSrvArray.request.update_type.push_back(0);
                     updateSrvArray.request.knowledge.push_back(*pit);
+
+                    //add mission start and end locations (propostion for start, goal for end)
+                    if(pit->attribute_name.compare("is-at-component") == 0){
+                        rosplan_knowledge_msgs::KnowledgeItem tempItem = *pit;
+                        tempItem.attribute_name = "is-at";
+                        diagnostic_msgs::KeyValue param;
+                        param.key = "perspective";
+                        param.value = "launch-pad";
+                        tempItem.values.push_back(param);
+                        updateSrvArray.request.update_type.push_back(0);
+                        updateSrvArray.request.knowledge.push_back(tempItem);
+                        updateSrvArray.request.update_type.push_back(1);
+                        updateSrvArray.request.knowledge.push_back(tempItem);
+                    }
                 }
             }
         }
@@ -193,6 +230,9 @@ namespace KCL_rosplan {
         update_array_tactical_knowledge_client.call(updateSrvArray);
         updateSrvArray.request.update_type.clear();
         updateSrvArray.request.knowledge.clear();
+
+
+
 
         return true;
     }

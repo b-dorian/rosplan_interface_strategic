@@ -77,6 +77,51 @@ namespace KCL_rosplan {
 
 
     /**
+    * disable specific
+    */
+    bool RPStrategicControl::disableDrone(rosplan_knowledge_msgs::EricssonSTKBModifier::Request &req, rosplan_knowledge_msgs::EricssonSTKBModifier::Response &res) {
+
+        if(disabledDrones.size() < 12) {
+
+            std::random_device rd;
+            std::mt19937 eng(rd());
+            std::uniform_int_distribution<> distrRemovalTime(1, 2);
+            int removalTime = distrRemovalTime(eng);
+            int drone = req.drone;
+
+            //check if drone is already on the removed list
+            bool addDrone = true;
+            for (int j = 0; j < disabledDrones.size(); j++) {
+                if (drone == disabledDrones[j])addDrone = false;
+            }
+            if (addDrone) {
+                disabledDrones.push_back(drone);
+            } else {
+                ROS_INFO("KCL: (%s) Drone %i is already on the removal list.",
+                         ros::this_node::getName().c_str(), drone);
+                return false;
+            }
+
+
+            std::stringstream ss;
+            ss << "drone" << drone;
+            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
+            updateSrv.request.knowledge.knowledge_type = 0;
+            updateSrv.request.knowledge.instance_type = "drone";
+            updateSrv.request.knowledge.instance_name = ss.str();
+            updateSrv.request.knowledge.attribute_name = "";
+            updateSrv.request.knowledge.function_value = 0.0;
+
+            ROS_INFO("KCL: (%s) !!! Drone %i will have an engine failure at %i seconds !!!",
+                     ros::this_node::getName().c_str(), drone, removalTime);
+            usleep(removalTime*1000000);
+            update_knowledge_client.call(updateSrv);
+            update_strategic_knowledge_client.call(updateSrv);
+
+        }
+    }
+
+    /**
      * disable random drone(s)
      * to add: disable one sensor, several sensors, or motor
      */
@@ -136,6 +181,7 @@ namespace KCL_rosplan {
 
             // add drones
             update_array_knowledge_client.call(updateSrvArray);
+            update_array_strategic_knowledge_client.call(updateSrvArray);
             updateSrvArray.request.update_type.clear();
             updateSrvArray.request.knowledge.clear();
             for (int i = 0; i < tempDisabledDrones.size(); i++) {
@@ -145,48 +191,6 @@ namespace KCL_rosplan {
         }
 
     }
-
-    bool RPStrategicControl::disableDrone(rosplan_knowledge_msgs::EricssonSTKBModifier::Request &req, rosplan_knowledge_msgs::EricssonSTKBModifier::Response &res) {
-
-        if(disabledDrones.size() < 12) {
-
-            std::random_device rd;
-            std::mt19937 eng(rd());
-            std::uniform_int_distribution<> distrRemovalTime(1, 2);
-            int removalTime = distrRemovalTime(eng);
-            int drone = req.drone;
-
-            //check if drone is already on the removed list
-            bool addDrone = true;
-            for (int j = 0; j < disabledDrones.size(); j++) {
-                if (drone == disabledDrones[j])addDrone = false;
-            }
-            if (addDrone) {
-                disabledDrones.push_back(drone);
-            } else {
-                ROS_INFO("KCL: (%s) Drone %i is already on the removal list.",
-                         ros::this_node::getName().c_str(), drone);
-                return false;
-            }
-
-
-            std::stringstream ss;
-            ss << "drone" << drone;
-            updateSrv.request.update_type = rosplan_knowledge_msgs::KnowledgeUpdateService::Request::REMOVE_KNOWLEDGE;
-            updateSrv.request.knowledge.knowledge_type = 0;
-            updateSrv.request.knowledge.instance_type = "drone";
-            updateSrv.request.knowledge.instance_name = ss.str();
-            updateSrv.request.knowledge.attribute_name = "";
-            updateSrv.request.knowledge.function_value = 0.0;
-
-            ROS_INFO("KCL: (%s) !!! Drone %i will have an engine failure at %i seconds !!!",
-                     ros::this_node::getName().c_str(), drone, removalTime);
-            usleep(removalTime*1000000);
-            update_knowledge_client.call(updateSrv);
-
-        }
-    }
-
     /**
      * create random TILs that will cause plan failure
      */
@@ -235,7 +239,8 @@ namespace KCL_rosplan {
 
             }
         }
-        update_array_knowledge_client.call(updateSrvArray);
+        update_strategic_knowledge_client.call(updateSrvArray);
+        update_array_strategic_knowledge_client.call(updateSrvArray);
         updateSrvArray.request.update_type.clear();
         updateSrvArray.request.knowledge.clear();
         ROS_INFO("KCL: (%s) !!! Weather Disturbance will cause a flight ban on station %i between seconds %i - %i !!!", ros::this_node::getName().c_str(),station,randomTime,(randomTime+300));
@@ -1601,6 +1606,11 @@ namespace KCL_rosplan {
             }
         }
         update_array_strategic_knowledge_client.call(updateSrvArray);
+
+        // will probably cause bugs further on, ok for the testing phase only
+        update_array_knowledge_client.call(updateSrvArray);
+
+
         updateSrvArray.request.update_type.clear();
         updateSrvArray.request.knowledge.clear();
     }
