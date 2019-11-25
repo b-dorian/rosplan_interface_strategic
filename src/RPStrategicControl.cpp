@@ -239,7 +239,7 @@ namespace KCL_rosplan {
 
             }
         }
-        update_strategic_knowledge_client.call(updateSrvArray);
+        //update_strategic_knowledge_client.call(updateSrvArray);
         update_array_strategic_knowledge_client.call(updateSrvArray);
         updateSrvArray.request.update_type.clear();
         updateSrvArray.request.knowledge.clear();
@@ -335,7 +335,6 @@ namespace KCL_rosplan {
 
     // sort and store pddl goals into desired missions
     std::pair<std::string,std::vector<std::string> > RPStrategicControl::splitIndividualGoals(int station, int site, std::string knowledge){
-        std::cout << time(0) << "\n";
         std::pair<std::string,std::vector<std::string> > name_and_type;
         std::stringstream ss;
         ss << "station-" << station << "-" << knowledge;
@@ -501,10 +500,11 @@ namespace KCL_rosplan {
                         (fit->values[0].value.compare(mit->second.location) == 0)) {
                         fit->function_value = 0;
                     }
-                    if ((fit->attribute_name.compare("distance") == 0) &&
-                        (fit->values[0].value.compare(mit->second.location) == 0)) {
-                        fit->function_value = 0;
-                    }
+// to be deleted, keeping only until further confirmation that is does not alter the soft
+//                    if ((fit->attribute_name.compare("distance") == 0) &&
+//                        (fit->values[0].value.compare(mit->second.location) == 0)) {
+//                        fit->function_value = 0;
+//                    }
                     mit->second.functions.push_back(*fit);
                 }
                 if ((fit->attribute_name.compare("inspection-duration") == 0) || (fit->attribute_name.compare("capability-consumption") == 0)){
@@ -1362,7 +1362,7 @@ namespace KCL_rosplan {
                     planService.request.domain_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/droneacharya/droneacharya-domain-all.pddl";
                     planService.request.problem_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/problem_tactical.pddl";
                     planService.request.data_path = "/home/nq/ROSPlan/src/rosplan_interface_strategic/common/tactical";
-                    planService.request.planner_command = "timeout 50 /home/nq/ROSPlan/src/rosplan_interface_strategic/common/optic-cplex -N DOMAIN PROBLEM";
+                    planService.request.planner_command = "timeout 50 /home/nq/ROSPlan/src/rosplan_interface_strategic/common/optic-cplex DOMAIN PROBLEM";
                     planService.request.use_problem_topic = false;
 
                     planning_client_params.call(planService);
